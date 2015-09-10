@@ -1,0 +1,16 @@
+[core]
+	pager = less -x1,5
+[format]
+	pretty = fuller
+[color]
+	ui = auto
+[push]
+	default = simple
+[user]
+	name = Roger Shimizu
+	email = rogershimizu@gmail.com
+[sendemail]
+	smtpencryption = tls
+	smtpserver = smtp.gmail.com
+	smtpserverport = 587
+	smtpuser = rogershimizu@gmail.com
