@@ -1,0 +1,8 @@
+alias serial='screen /dev/ttyUSB0 115200'
+alias du='du -h --max-depth=1'
+alias rsyncplain='rsync -rltDv'
+alias netconsole='nc -l -u -p 6666 | tee ~/netconsole.log' # netconsole will send to 192.168.1.100:6666 # ip a add 192.168.1.100/24 dev eth0
+alias 7='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m'
+alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
+alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
+complete -F _quilt_completion $_quilt_complete_opt dquilt
