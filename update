@@ -1,0 +1,103 @@
+#!/bin/bash
+
+SRC_ROOT=$(readlink -f $(dirname $0))
+USR=$(echo ${SRC_ROOT#/home/}|cut -d/ -f1)
+[ -z "$USR" ] &&
+	USR=$USER
+DRYRUN=0
+if [ -n "$1" ]; then
+	if [ "$1" = "--help" -o "$1" = "-h" ]; then
+		echo Usage:
+		echo -e \\\t$0\\\t\\\tupdate config
+		echo -e \\\t$0 \[--help\|-h\]\\\tshow this help
+		echo -e \\\t$0 \[--dry-run\|-n\]\\\ttest but no real change
+		exit
+	elif [ "$1" = "--dry-run" -o "$1" = "-n" ]; then
+		DRYRUN=1
+	fi
+fi
+
+logger() {
+	echo "$1"'	'"$2"':	'"$3"
+}
+
+config_profile() {
+	profile=$1
+	SU_CMD=
+	HOMEDIR=
+	[ ! -d $SRC_ROOT/$profile ] &&
+		return
+	if [ "$profile" = "local" ]; then
+		HOMEDIR=$(eval echo "~$USR")
+		[ $UID -eq 0 ] && 	# su to the user which config/ folder is stored
+			SU_CMD="su $USR -c '\"\$0\" \"\$@\"' --"
+		# solution mentioned in post: https://stackoverflow.com/questions/12343227
+	fi
+
+	cd $SRC_ROOT/$profile
+	for item in $(find . -mount -print); do
+		# skip if it's a folder
+		[ -z "$item" -o ! -f "$item" ] &&
+			continue
+
+		target=
+		append=
+		name=$(basename $item)
+		path=$(dirname $item)
+		if [ "$path" = "." ]; then
+			path=""
+		else
+			path=${path#./}/
+		fi									# relative $path, TO here
+		src="$SRC_ROOT/$profile/$path$name"	# "source file" in absolute path
+		[[ "$path" =~ "_*" ]] &&
+			path=.${path#_}
+		path="$HOMEDIR/$path"				# absolute $path, FROM here
+
+		case "$name" in
+		_*+)target=.${name#_}
+			append=${target%+} ;;
+		*+)	target=$name
+			append=${name%+} ;;
+		_*)	target=.${name#_} ;;
+		*)	target="$name" ;;
+		esac
+		target="$path$target"				# "$target file" in absolute path
+
+		# file should not exist (symbolic link is OK, we simply update it)
+		if [ -f "$target" -a ! -h "$target" ]; then
+			logger '[NG]' "$src" "target exists \"$target\""
+			continue
+		fi
+		# if target folder isn's exist, simply mkdir it
+		if [ ! -d "$path" ]; then
+			if [ $DRYRUN -eq 0 ] && ! mkdir -p "$path"; then
+				logger '[NG]' "$src" "fail to mkdir \"$path\""
+				continue
+			else
+				logger '[DIR]' "$src" "mkdir \"$path\""
+			fi
+		fi
+		if [ -n "$append" ]; then
+			if [ -h "$target" ]; then
+				logger '[SKIP]' "$src" "\"$path$append\" already appended. please maintain it yourself."
+				continue
+			else
+				logger '[OK]' "$src" "\"$path$append\" appended"
+				[ $DRYRUN -eq 0 ] &&
+					cat "$src" >> "$path$append"
+			fi
+		fi
+		[ "$src" -ef "$target" ] &&		# nothing need to do if $target is already linked to $src, what ever soft or hard link
+				continue
+		if [ $DRYRUN -eq 0 ] && ! eval $SU_CMD ln -sf "$src" "$target"; then
+			logger '[NG]' "$src" "fail to make symbolic link to \"$target\""
+			continue
+		fi
+		logger '[OK]' "$src" "symbolic link to \"$target\""
+	done
+}
+
+[ $UID -eq 0 ] &&
+	config_profile global
+config_profile local
