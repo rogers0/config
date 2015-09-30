@@ -1,0 +1,13 @@
+unit 0
+noipdefault
+defaultroute
+replacedefaultroute
+hide-password
+noauth
+persist
+plugin rp-pppoe.so eth0
+
+# ISP account is "just for your reference". Please get your account from ISP
+#user "000000000@plala.or.jp"
+#user "abcdefgh@one.ocn.ne.jp"
+#user "abcdefgh@bizf.ocn.ne.jp"
