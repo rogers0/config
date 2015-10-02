@@ -25,6 +25,7 @@ config_profile() {
 	profile=$1
 	SU_CMD=
 	HOMEDIR=
+	IGNOREPATH=
 	[ ! -d $SRC_ROOT/$profile ] &&
 		return
 	if [ "$profile" = "local" ]; then
@@ -37,10 +38,9 @@ config_profile() {
 	cd $SRC_ROOT/$profile
 	for item in $(find . -mount -print); do
 		# skip if it's a folder
-		[ -z "$item" -o ! -f "$item" ] &&
+		[ -z "$item" -o ! -e "$item" -o "$item" = "." ] &&
 			continue
 
-		target=
 		append=
 		name=$(basename $item)
 		path=$(dirname $item)
@@ -50,6 +50,14 @@ config_profile() {
 			path=${path#./}/
 		fi									# relative $path, TO here
 		src="$SRC_ROOT/$profile/$path$name"	# "source file" in absolute path
+		realsrc="$(readlink -f "$src")"
+		if [ -n "$IGNOREPATH" ]; then
+			if [[ "$src" =~ "$IGNOREPATH"* ]]; then
+				continue
+			else
+				IGNOREPATH=
+			fi
+		fi
 		[[ "$path" =~ "_*" ]] &&
 			path=.${path#_}
 		path="$HOMEDIR/$path"				# absolute $path, FROM here
@@ -64,7 +72,7 @@ config_profile() {
 		esac
 		target="$path$target"				# "$target file" in absolute path
 
-		# file should not exist (symbolic link is OK, we simply update it)
+		# file should not exist (symbolic link is OK, we update it if linking to other file)
 		if [ -f "$target" -a ! -h "$target" ]; then
 			logger '[NG]' "$src" "target exists \"$target\""
 			continue
@@ -78,18 +86,28 @@ config_profile() {
 				logger '[DIR]' "$src" "mkdir \"$path\""
 			fi
 		fi
+		# the special case for "name+" file or folder
 		if [ -n "$append" ]; then
-			if [ -h "$target" ]; then
-				logger '[SKIP]' "$src" "\"$path$append\" already appended. please maintain it yourself."
-				continue
+			if [ -d "$realsrc" ]; then
+				target="$path$append"
+				IGNOREPATH="$src"
 			else
-				logger '[OK]' "$src" "\"$path$append\" appended"
-				[ $DRYRUN -eq 0 ] &&
-					cat "$src" >> "$path$append"
+				if [ -h "$target" ]; then
+					logger '[SKIP]' "$src" "\"$path$append\" already appended. please maintain it yourself."
+					continue
+				else
+					logger '[OK]' "$src" "\"$path$append\" appended"
+					[ $DRYRUN -eq 0 ] &&
+						cat "$src" >> "$path$append"
+				fi
 			fi
 		fi
-		[ "$src" -ef "$target" ] &&		# nothing need to do if $target is already linked to $src, what ever soft or hard link
+		if [ "$src" -ef "$target" ] || [ -d "$realsrc" -a -z "$append" ]; then
+				# nothing need to do if:
+				# 1. $target is already linked to $src, what ever soft or hard link, or
+				# 2. $src is folder, but target is not "name+"
 				continue
+		fi
 		if [ $DRYRUN -eq 0 ] && ! eval $SU_CMD ln -sf "$src" "$target"; then
 			logger '[NG]' "$src" "fail to make symbolic link to \"$target\""
 			continue
