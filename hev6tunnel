@@ -45,6 +45,8 @@ if [ -z "${CONNECT_TIME}" -a "$1" != "stop" ]; then
 	if [ -n "$URL" ]; then
 		$WGET "$URL"
 		sysctl -p /etc/sysctl.d/ipv6.conf > /dev/null 2>&1
+		[ -x "${SCRIPT_ROOT}/ip-addrlabel_NTT-NGN-fix" ] &&
+			${SCRIPT_ROOT}/ip-addrlabel_NTT-NGN-fix
 		ip tunnel add hetunnel mode sit remote $REMOTEIP local $LOCALIP ttl 255
 		ip link set hetunnel up mtu $MTU
 		sysctl -p /etc/sysctl.d/ipv6.conf > /dev/null 2>&1

@@ -1,7 +1,11 @@
 #!/bin/sh
 
+SCRIPT_ROOT=$(dirname $(readlink -f $0))
+
 if [ -z "$CONNECT_TIME" ]; then
 	sysctl -p /etc/sysctl.d/ipv6.conf 2> /dev/null
+	[ -x "${SCRIPT_ROOT}/ip-addrlabel_NTT-NGN-fix" ] &&
+		${SCRIPT_ROOT}/ip-addrlabel_NTT-NGN-fix
 	if [ "$PPP_IPPARAM" = "ipv6defaultroute" ]; then
 		ip -6 r flush default
 		ip -6 r add default dev $PPP_IFACE
