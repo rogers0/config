@@ -1,0 +1,13 @@
+#!/bin/sh
+
+SCRIPT_ROOT=$(dirname $(readlink -f $0))
+SCRIPT_NAME=$(basename $0)
+
+FINDRUN="find $SCRIPT_ROOT -path $SCRIPT_ROOT/.git -prune -o -name README.md -prune -o -name $SCRIPT_NAME -prune -o -type f -exec"
+[ "x$1" = "x-n" -o "x$1" = "x--dry-run" ] &&
+	$FINDRUN grep eth0 {} \; && exit 0
+
+IF=enp0s3
+[ -n "$1" ] &&
+	IF="$1"
+$FINDRUN sed -i s/eth0/${IF}/g {} \;

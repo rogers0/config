@@ -1,0 +1,36 @@
+#!/bin/sh
+#
+# add IPv6 routing prefix from NTT NGN network
+# prefix list is from:
+# - https://support.microsoft.com/ja-jp/kb/2551233
+# - http://www.attn.jp/maz/p/i/policy-table/
+#
+# default prefix is described in /etc/gai.conf
+#label ::1/128       0
+#label ::/0          1
+#label 2002::/16     2
+#label ::/96         3
+#label ::ffff:0:0/96 4
+#label fec0::/10     5
+#label fc00::/7      6
+#label 2001:0::/32   7
+
+# flush current prefix list
+ip addrlabel flush
+
+# same as /etc/gai.conf
+ip addrlabel add prefix ::1/128			label 0
+ip addrlabel add prefix ::/0			label 1
+ip addrlabel add prefix 2002::/16		label 2
+ip addrlabel add prefix ::/96			label 3
+ip addrlabel add prefix ::ffff:0:0/96	label 4
+ip addrlabel add prefix fec0::/10		label 5
+ip addrlabel add prefix fc00::/7		label 6
+ip addrlabel add prefix 2001:0::/32		label 7
+
+# special prefix for NTT NGN
+ip addrlabel add prefix 2001:c90::/32	label 8
+ip addrlabel add prefix 2404:1a8::/32	label 8
+ip addrlabel add prefix 2408::/22		label 8
+ip addrlabel add prefix 2001:d70::/30	label 8
+ip addrlabel add prefix 2001:a000::/21	label 8

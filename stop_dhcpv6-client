@@ -1,0 +1,12 @@
+#!/bin/sh
+
+SCRIPT_ROOT=$(dirname $(readlink -f $0))
+ID=$(id -u)
+
+if [ $ID -ne 0 ]; then
+	echo Need root access to setup IPv6 network
+	exit 1
+fi
+
+service wide-dhcpv6-client stop
+sysctl -p $SCRIPT_ROOT/global/etc/sysctl.d/no_ipv6.conf
