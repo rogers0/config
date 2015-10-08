@@ -32,3 +32,22 @@ usage1: NAT + IPv6 tunnel (on your gateway, you need to D-NAT all protocol 41 tr
 
 *refer pkg_depends_on.txt for package dependency info.  
 if the main network interface is other than "eth0", please try to run `./replace_eth0_with_other_if [interface]`. It will replace "eth0" with "interface".*
+
+----
+Stateful DHCPv6 server setting
+----
+
+usage:
+- start native or tunnel IPv6 (refer 2 topics above)
+  * native IPv6: `sysctl -p /etc/sysctl.d/ipv6.conf 2> /dev/null; pon dslv6`
+  * IPv6 tunnel:
+    . You need to apply a /48 prefix in [tunnelbroker.net's tunnel info page](https://www.tunnelbroker.net/tunnel_detail.php?tid=$TUNNELID), and write it to $IPV6PREFIX in "hev6tunnel.conf" file
+    . start IPv6 tunnel: `./hev6tunnel`
+- so other hosts in the same network segment can use the above IPv6 connection as gateway. Those hosts are called "stateful IPv6 host". refer "stateful_v6host" branch
+  * `./start_dhcpv6-client`
+  * `./ping6_google_dns`
+  * . . .
+  * `./stop_dhcpv6-client`
+
+*refer pkg_depends_on.txt for package dependency info.  
+if the main network interface is other than "eth0", please try to run `./replace_eth0_with_other_if [interface]`. It will replace "eth0" with "interface".*

@@ -1,1 +1,1 @@
-pppoe wide-dhcpv6-client
+pppoe wide-dhcpv6-client wide-dhcpv6-server radvd

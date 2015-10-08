@@ -1,0 +1,9 @@
+#option domain-name-servers 2001:470:20::2 2001:4860:4860::8888;
+
+interface eth0 {
+	address-pool pool0 60;
+};
+
+pool pool0 {
+	range IPV6PREFIX::a000 to IPV6PREFIX::b000;
+};

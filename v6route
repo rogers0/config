@@ -2,6 +2,10 @@
 
 SCRIPT_ROOT=$(dirname $(readlink -f $0))
 
+GetInterfacePrefix() {
+	echo "$(ip -6 r show dev $1|grep -v ^fe80::|grep -v ^default|cut -d ' ' -f1|sed 's|::/[0-9]*$||')"
+}
+
 if [ -z "$CONNECT_TIME" ]; then
 	sysctl -p /etc/sysctl.d/ipv6.conf 2> /dev/null
 	[ -x "${SCRIPT_ROOT}/ip-addrlabel_NTT-NGN-fix" ] &&
@@ -15,7 +19,24 @@ if [ -z "$CONNECT_TIME" ]; then
 	else
 		service wide-dhcpv6-client start
 	fi
+	IPV6PREFIX=$(GetInterfacePrefix "eth0")
+	ip a add ${IPV6PREFIX}::1/64 dev eth0
+	sed s/IPV6PREFIX/$IPV6PREFIX/g ${SCRIPT_ROOT}/global/etc/wide-dhcpv6/dhcp6s.conf.template > /etc/wide-dhcpv6/dhcp6s.conf
+	if [ -r /var/run/radvd/radvd.pid ]; then
+		service radvd restart
+	else
+		service radvd start
+	fi
+	if [ -r /var/run/dhcp6s.*.pid ]; then
+		service wide-dhcpv6-server restart
+	else
+		service wide-dhcpv6-server start
+	fi
 else
+	[ -r /var/run/dhcp6s.*.pid ] &&
+		service wide-dhcpv6-server stop
+	[ -r /var/run/radvd/radvd.pid ] &&
+		service radvd stop
 	[ -r /var/run/dhcp6c.pid ] &&
 		service wide-dhcpv6-client stop
 	sysctl -p /etc/sysctl.d/no_ipv6.conf

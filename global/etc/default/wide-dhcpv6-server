@@ -1,0 +1,6 @@
+# Defaults for dhcpv6 server initscript
+# Used by /etc/init.d/wide-dhcpv6-server
+
+# Interfaces on which the server should serve DHCPv6 requests. If empty, the
+# server is deactivated.
+INTERFACES="eth0"

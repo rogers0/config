@@ -53,11 +53,27 @@ if [ -z "${CONNECT_TIME}" -a "$1" != "stop" ]; then
 		ip -6 a add $IPV6ADDR dev hetunnel
 		ip -6 r flush default
 		ip -6 r add default dev hetunnel
+		ip -6 a add ${IPV6PREFIX}::1/64 dev eth0
+		sed s/IPV6PREFIX/$IPV6PREFIX/g ${SCRIPT_ROOT}/global/etc/wide-dhcpv6/dhcp6s.conf.template > /etc/wide-dhcpv6/dhcp6s.conf
+		if [ -r /var/run/radvd/radvd.pid ]; then
+			service radvd restart
+		else
+			service radvd start
+		fi
+		if [ -r /var/run/dhcp6s.*.pid ]; then
+			service wide-dhcpv6-server restart
+		else
+			service wide-dhcpv6-server start
+		fi
 	else
 		echo failed to get IP or make URL to update HE tunnel config
 	fi
 elif [ -n "${CONNECT_TIME}" -o "$1" = "stop" ]; then
 	if ifconfig hetunnel >/dev/null 2>&1; then
+		[ -r /var/run/dhcp6s.*.pid ] &&
+			service wide-dhcpv6-server stop
+		[ -r /var/run/radvd/radvd.pid ] &&
+			service radvd stop
 		ip -6 r del default dev hetunnel
 		ip link set hetunnel down
 		ip tunnel del hetunnel
