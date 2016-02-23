@@ -90,7 +90,7 @@ config_profile() {
 			logger '[NG]' "$src" "target exists \"$target\""
 			continue
 		fi
-		# if target folder isn's exist, simply mkdir it
+		# if target folder doesn't exist, simply mkdir it
 		if [ ! -d "$path" ]; then
 			if [ $DRYRUN -eq 0 ] && ! mkdir -p "$path"; then
 				logger '[NG]' "$src" "fail to mkdir \"$path\""
@@ -102,7 +102,16 @@ config_profile() {
 		# the special case for "name+" file or folder
 		if [ -n "$append" ]; then
 			if [ -d "$realsrc" ]; then
-				target="$path$append"
+				target="${path}${append}/"
+				if [ ! -d "$target" ]; then # it's normal if the folder to append already exists
+					if [ $DRYRUN -eq 0 ] && ! mkdir -p "$target"; then
+						logger '[NG]' "$src" "fail to mkdir \"$target\""
+						continue
+					else
+						logger '[DIR]' "$src" "mkdir \"$target\""
+					fi
+				fi
+				src=${src}/*
 				IGNOREPATH="$src"
 			else
 				if [ -h "$target" ]; then
