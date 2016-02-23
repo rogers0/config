@@ -1,16 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 
 SRC_ROOT=$(readlink -f $(dirname $0))
-USR=$(echo ${SRC_ROOT#/home/}|cut -d/ -f1)
+USR=$(id -un)
 [ -z "$USR" ] &&
 	USR=$USER
+USERID=$(id -ru)
 DRYRUN=0
 if [ -n "$1" ]; then
 	if [ "$1" = "--help" -o "$1" = "-h" ]; then
 		echo Usage:
-		echo -e \\\t$0\\\t\\\tupdate config
-		echo -e \\\t$0 \[--help\|-h\]\\\tshow this help
-		echo -e \\\t$0 \[--dry-run\|-n\]\\\ttest but no real change
+		printf \\\t$0\\\t\\\tupdate\ config\\\n
+		printf \\\t$0\ \[--help\|-h\]\\\tshow\ this\ help\\\n
+		printf \\\t$0\ \[--dry-run\|-n\]\\\ttest\ but\ no\ real\ change\\\n
 		exit
 	elif [ "$1" = "--dry-run" -o "$1" = "-n" ]; then
 		DRYRUN=1
@@ -30,7 +31,7 @@ config_profile() {
 		return
 	if [ "$profile" = "local" ]; then
 		HOMEDIR=$(eval echo "~$USR")
-		[ $UID -eq 0 ] && 	# su to the user which config/ folder is stored
+		[ "$USERID" -eq 0 ] && 	# su to the user which config/ folder is stored
 			SU_CMD="su $USR -c '\"\$0\" \"\$@\"' --"
 		# solution mentioned in post: https://stackoverflow.com/questions/12343227
 	fi
@@ -52,23 +53,35 @@ config_profile() {
 		src="$SRC_ROOT/$profile/$path$name"	# "source file" in absolute path
 		realsrc="$(readlink -f "$src")"
 		if [ -n "$IGNOREPATH" ]; then
-			if [[ "$src" =~ "$IGNOREPATH"* ]]; then
+			case "$src" in
+			${IGNOREPATH}*)
 				continue
-			else
+				;;
+			*)
 				IGNOREPATH=
-			fi
+				;;
+			esac
 		fi
-		[[ "$path" =~ "_*" ]] &&
-			path=.${path#_}
+		case "$path" in
+			_*) path=.${path#_}
+		esac
 		path="$HOMEDIR/$path"				# absolute $path, FROM here
 
 		case "$name" in
-		_*+)target=.${name#_}
-			append=${target%+} ;;
-		*+)	target=$name
-			append=${name%+} ;;
-		_*)	target=.${name#_} ;;
-		*)	target="$name" ;;
+		_*+)
+			target=.${name#_}
+			append=${target%+}
+			;;
+		*+)
+			target=$name
+			append=${name%+}
+			;;
+		_*)
+			target=.${name#_}
+			;;
+		*)
+			target="$name"
+			;;
 		esac
 		target="$path$target"				# "$target file" in absolute path
 
@@ -116,6 +129,6 @@ config_profile() {
 	done
 }
 
-[ $UID -eq 0 ] &&
+[ "$USERID" -eq 0 ] &&
 	config_profile global
 config_profile local
