@@ -6,3 +6,13 @@ alias 7='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m'
 alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
 alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
+
+alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
+alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
+alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
+alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder --git-arch=amd64 --git-dist=sid --git-export-dir=../build-dir'
+
+export EDITOR=vim
+export DEBFULLNAME="Roger Shimizu"
+export DEBEMAIL="rogershimizu@gmail.com"
+export TZ='Asia/Tokyo'
