@@ -1,5 +1,5 @@
 
-alias auu='apt-get update && apt-get upgrade && apt-get clean'
+alias auu='apt update && apt upgrade'
 alias iwlist='iwlist wlan0 scan |less -p ESSID'
 alias netconsole_ip='ip a add 192.168.11.1/24 dev eth0'
 
@@ -13,7 +13,18 @@ alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
 alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
 
+alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
+alias amendcommitreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
+alias resetgit='git clean -fdx; git reset --hard'
+alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
+alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
+alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder --git-export-dir=../build-area'
+alias gpbupdate='git-pbuilder update --override-config'
+
 PATH=$PATH:~/bin
-DEBEMAIL=rogershimizu@gmail.com
-DEBNAME="Roger Shimizu"
-VISUAL=vim
+export DEBEMAIL=rogershimizu@gmail.com
+export DEBNAME="Roger Shimizu"
+#DEBFULLNAME="Roger Shimizu"
+export VISUAL=vim
+#EDITOR=vim
+export TZ='Asia/Tokyo'

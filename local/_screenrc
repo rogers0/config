@@ -3,4 +3,4 @@ startup_message off
 # It remaps the meta key from ^a to ^z so that I can still use ^a in bash to get to the beginning of the line. It also has a handy clock at the bottom of the screen.
 escape ^zz
 hardstatus alwayslastline
-hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r} (%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{B} %d/%m %{W}%c %{g}]'
+hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r} (%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{y} Load: %l %{g}][%{B} %M %d %{W}%c %{g}]'

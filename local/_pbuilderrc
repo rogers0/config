@@ -1,0 +1,7 @@
+# this is your configuration file for pbuilder.
+# read pbuilderrc.5 document for notes on specific options.
+MIRRORSITE=http://hanzubon.jp/debian
+OTHERMIRROR="deb [trusted=yes] file:///home/roger/working/build-area ./"
+BINDMOUNTS=/home/roger/working/build-area
+HOOKDIR=/home/roger/working
+EXTRAPACKAGES=apt-utils

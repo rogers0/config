@@ -1,0 +1,63 @@
+"https://github.com/fisadev/fisa-vim-config
+"http://3502990.blog.51cto.com/3492990/985750
+
+"filetype off
+"execute pathogen#runtime_append_all_bundles()
+"execute pathogen#helptags()
+"filetype plugin indent on
+"git clone git://github.com/tpope/vim-fugitive
+
+"execute pathogen#infect()
+syntax on
+filetype plugin indent on
+
+map <F3> :NERDTreeToggle<CR>
+map <F4> :TagbarToggle<CR>
+let g:tagbar_autofocus = 1
+map <F5> :Dbg over<CR>
+map <F6> :Dbg into<CR>
+map <F7> :Dbg out<CR>
+map <F8> :Dbg here<CR>
+map <F9> :Dbg break<CR>
+map <F10> :Dbg watch<CR>
+map <F11> :Dbg down<CR>
+map <F12> :Dbg up<CR>
+
+map tn :tabn<CR>
+map tp :tabp<CR>
+map tm :tabm<CR>
+map tt :tabnew
+map <C-S-Right> :tabn<CR>
+imap <C-S-Right> <ESC>:tabn<CR>
+map <C-S-Left> :tabp<CR>
+imap <C-S-Left> <ESC>:tabp<CR>
+
+map <M-Right> <c-w>l
+map <M-Left> <c-w>h
+map <M-Up> <c-w>k
+map <M-Down> <c-w>j
+imap <M-Right> <ESC><c-w>l
+imap <M-Left> <ESC><c-w>h
+imap <M-Up> <ESC><c-w>k
+imap <M-Down> <ESC><c-w>j
+
+
+set nobackup
+set nowritebackup
+set noswapfile
+
+" always show status bar
+set ls=2
+
+" highlighted search results
+set hlsearch
+
+"roger added
+set tabstop=4
+set autoread
+
+"ignore trailing whitespace when diff
+"set diffopt+=iwhite
+
+"let g:hybrid_use_Xresources = 1
+colorscheme twilight
