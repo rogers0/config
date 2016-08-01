@@ -6,6 +6,11 @@ $CONFIG{'email'} = 'rogershimizu@gmail.com';
 $CONFIG{'gpg-sign-args'} = 'save';
 #$CONFIG{'email'} = 'roger@localet.com';
 #$CONFIG{'reply-to'} = 'foo@bla.org';
+#$CONFIG{'mailer-send'} =  [ 'smtp', Server => 'mail.server', Auth => ['user', 'pass'] ];
+#$CONFIG{'mailer-send'} =  [ 'sendmail', '-f', $CONFIG{'email'}, '-it' ];
+$ENV{'PERL_MAILERS'} = 'sendmail:/usr/bin/msmtp';
+$CONFIG{'mailer-send'} = [ 'sendmail' ];
+
 
 # You can get your long keyid from
 #   gpg --with-colons --list-key <yourkeyid|name|emailaddress..>
