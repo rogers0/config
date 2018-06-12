@@ -9,7 +9,6 @@ $CONFIG{'gpg-sign-args'} = 'save';
 #$CONFIG{'mailer-send'} =  [ 'smtp', Server => 'mail.server', Auth => ['user', 'pass'] ];
 #$CONFIG{'mailer-send'} =  [ 'sendmail', '-f', $CONFIG{'email'}, '-it' ];
 $ENV{'PERL_MAILERS'} = 'sendmail:/usr/bin/msmtp';
-$CONFIG{'mailer-send'} = [ 'sendmail' ];
 
 
 # You can get your long keyid from
@@ -25,7 +24,7 @@ $CONFIG{'mailer-send'} = [ 'sendmail' ];
 $CONFIG{'keyid'} = [ qw{6C6ACD6417B3ACB1} ];
 
 # Select this/these keys to sign with
-#$CONFIG{'local-user'} = [ qw{6C6ACD6417B3ACB1} ];
+$CONFIG{'local-user'} = [ qw{6C6ACD6417B3ACB1} ];
 
 # Additionally encrypt messages for these keyids
 $CONFIG{'also-encrypt-to'} = [ qw{6C6ACD6417B3ACB1} ];

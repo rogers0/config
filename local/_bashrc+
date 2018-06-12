@@ -14,17 +14,28 @@ alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
 
 alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
-alias amendcommitreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
+alias amendreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias resetgit='git clean -fdx; git reset --hard'
 alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
 alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
 alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder --git-export-dir=../build-area'
 alias gpbupdate='git-pbuilder update --override-config'
 
+alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1'
+alias bpostretch='dch --bpo -D stretch-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"'
+alias bposloppy='dch -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"'
+alias bpostretchteam='dch --bpo -D stretch-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"'
+alias bposloppyteam='dch --team -D jessie-backports "Rebuild for jessie-backports-sloppy."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"'
+
 PATH=$PATH:~/bin
 export DEBEMAIL=rogershimizu@gmail.com
+#export DEBEMAIL=rosh@debian.org
 export DEBNAME="Roger Shimizu"
 #DEBFULLNAME="Roger Shimizu"
 export VISUAL=vim
 #EDITOR=vim
 export TZ='Asia/Tokyo'
+
+export GTK_IM_MODULE=fcitx
+export QT_IM_MODULE=fcitx
+export XMODIFIERS=@im=fcitx

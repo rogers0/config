@@ -1,5 +1,6 @@
 [DEFAULT]
-default_host_main = mentors
+#default_host_main = sftp
+default_host_main = ftp-master
 
 [mentors]
 method = http
