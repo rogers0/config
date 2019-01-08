@@ -21,13 +21,13 @@ $ENV{'PERL_MAILERS'} = 'sendmail:/usr/bin/msmtp';
 #   $CONFIG{'keyid'} = [ qw{FEDCBA9876543210} ];
 #  or, if you have more than one key:
 #   $CONFIG{'keyid'} = [ qw{0123456789ABCDEF 89ABCDEF76543210} ];
-$CONFIG{'keyid'} = [ qw{6C6ACD6417B3ACB1} ];
+$CONFIG{'keyid'} = [ qw{AA761F51CC10C92A} ];
 
 # Select this/these keys to sign with
-$CONFIG{'local-user'} = [ qw{6C6ACD6417B3ACB1} ];
+$CONFIG{'local-user'} = [ qw{AA761F51CC10C92A} ];
 
 # Additionally encrypt messages for these keyids
-$CONFIG{'also-encrypt-to'} = [ qw{6C6ACD6417B3ACB1} ];
+$CONFIG{'also-encrypt-to'} = [ qw{AA761F51CC10C92A} ];
 
 # Mail template to use for the encrypted part
 $CONFIG{'mail-template'} = << 'EOM';

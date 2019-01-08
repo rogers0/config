@@ -1,7 +1,23 @@
 # this is your configuration file for pbuilder.
 # read pbuilderrc.5 document for notes on specific options.
-MIRRORSITE=http://hanzubon.jp/debian
-OTHERMIRROR="deb [trusted=yes] file:///home/roger/working/build-area ./"
-BINDMOUNTS=/home/roger/working/build-area
-HOOKDIR=/home/roger/working
-EXTRAPACKAGES=apt-utils
+SOURCE_ONLY_CHANGES=yes
+MIRRORSITE=https://deb.debian.org/debian
+
+#OTHERMIRROR="deb [trusted=yes] file:///home/roger/working/build-area ./" # Need local packages
+#OTHERMIRROR="deb [trusted=yes] file:///home/roger/working/build-area ./ | deb $MIRRORSITE ${DIST} main" # seems NG
+#OTHERMIRROR="deb [trusted=yes] file:///home/roger/working/build-area ./ | deb $MIRRORSITE jessie-backports main" # Need backports
+#OTHERMIRROR="deb [trusted=yes] file:///home/roger/mnt/roger/working/kcp/build-area ./ | deb $MIRRORSITE jessie-backports main | deb $MIRRORSITE jessie-backports-sloppy main" # Need backports
+OTHERMIRROR="deb $MIRRORSITE jessie-backports main contrib non-free | deb $MIRRORSITE jessie-backports-sloppy main contrib non-free | deb [trusted=yes] file:///data/rosh/working/build-area ./" # Need backports
+
+#BINDMOUNTS=/home/roger/mnt/roger/working/kcp/build-area
+#HOOKDIR=/home/roger/mnt/roger/working/kcp
+EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper"
+#PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-apt
+#PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-gdebi
+#PBUILDERSATISFYDEPENDSCMD=/usr/lib/pbuilder/pbuilder-satisfydepends-aptitude
+
+#if [ -n "$DEPS" ] ; then
+	#export DEPSBASE=/var/cache/pbuilder/deps
+#	export DEPSBASE=/data/rosh/working/build-area
+#	BINDMOUNTS=$DEPSBASE
+#fi

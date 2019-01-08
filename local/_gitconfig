@@ -10,5 +10,11 @@
 	name = Roger Shimizu
 	email = rogershimizu@gmail.com
 	signingkey = 0xA4786B0DA70334A8
+	#email = roger.xc.shimizu@sonymobile.com
 [sendemail]
 	smtpserver = "/usr/bin/msmtp"
+#[pack]
+#	windowMemory = 100m
+#	SizeLimit = 100m
+#	threads = 1
+#	window = 0

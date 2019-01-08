@@ -22,6 +22,8 @@ allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
 progress_indicator = 2
+# Allow uploads for UNRELEASED packages
+allowed_distributions = .*
 
 [i386]
 fqdn		= debomatic-i386.debian.net
@@ -62,6 +64,8 @@ allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
 progress_indicator = 2
+# Allow uploads for UNRELEASED packages
+allowed_distributions = .*
 
 [mips]
 fqdn		= debomatic-mips.debian.net
