@@ -14,6 +14,7 @@ alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
 
 alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
+alias amendmerge="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '4{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias amendreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias resetgit='git clean -fdx; git reset --hard'
 alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
@@ -22,16 +23,24 @@ alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilde
 alias gpbupdate='git-pbuilder update --override-config'
 
 alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1'
-alias bpostretch='dch --bpo -D stretch-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"'
-alias bposloppy='dch -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"'
-alias bpostretchteam='dch --bpo -D stretch-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"'
-alias bposloppyteam='dch --team -D jessie-backports "Rebuild for jessie-backports-sloppy."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"'
+alias debemail='export DEBEMAIL=$(git config user.email)'
+alias dch-r='debemail; dch -r ""; git add debian/changelog; git commit -m "Prepare to release $(dpkg-parsechangelog -SVersion)"'
+alias gitag='git tag debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD'
+alias deps='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends"'
+alias depsbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t stretch-backports"'
+alias bpostretch='debemail; dch --bpo -D stretch-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"; gitag'
+alias bposloppy='debemail; dch -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; sed "1 s/~bpo9+2/~bpo8+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"; gitag'
+alias bpostretchteam='debemail; dch --bpo -D stretch-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"; gitag'
+alias bposloppyteam='debemail; dch --team -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; sed "1 s/~bpo9+2/~bpo8+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"; gitag'
+alias dakrminfo='ssh mirror.ftp-master.debian.org "dak rm -Rn $1"'
 
-PATH=$PATH:~/bin
-export DEBEMAIL=rogershimizu@gmail.com
-#export DEBEMAIL=rosh@debian.org
+PATH=/usr/lib/ccache:$PATH:~/bin
+#export DEBEMAIL=rogershimizu@gmail.com
+export DEBEMAIL=rosh@debian.org
 export DEBNAME="Roger Shimizu"
 #DEBFULLNAME="Roger Shimizu"
+export DEB_BUILD_OPTIONS=parallel=$(($(nproc)*2-1))
+export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export VISUAL=vim
 #EDITOR=vim
 export TZ='Asia/Tokyo'

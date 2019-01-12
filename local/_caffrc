@@ -4,10 +4,10 @@
 $CONFIG{'owner'} = 'Roger Shimizu';
 $CONFIG{'email'} = 'rogershimizu@gmail.com';
 $CONFIG{'gpg-sign-args'} = 'save';
-#$CONFIG{'email'} = 'roger@localet.com';
 #$CONFIG{'reply-to'} = 'foo@bla.org';
 #$CONFIG{'mailer-send'} =  [ 'smtp', Server => 'mail.server', Auth => ['user', 'pass'] ];
 #$CONFIG{'mailer-send'} =  [ 'sendmail', '-f', $CONFIG{'email'}, '-it' ];
+#$CONFIG{'keyserver'} = 'hkps://hkps.pool.sks-keyservers.net';
 $ENV{'PERL_MAILERS'} = 'sendmail:/usr/bin/msmtp';
 
 
