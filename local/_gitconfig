@@ -9,8 +9,6 @@
 [user]
 	name = Roger Shimizu
 	email = rogershimizu@gmail.com
+	signingkey = 0xA4786B0DA70334A8
 [sendemail]
-	smtpencryption = tls
-	smtpserver = smtp.gmail.com
-	smtpserverport = 587
-	smtpuser = rogershimizu@gmail.com
+	smtpserver = "/usr/bin/msmtp"

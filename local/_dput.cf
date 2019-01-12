@@ -1,6 +1,8 @@
 [DEFAULT]
-#default_host_main = sftp
-default_host_main = ftp-master
+default_host_main = ssh-upload
+
+[ssh-upload]
+login = rosh
 
 [mentors]
 method = http
@@ -10,3 +12,80 @@ allow_unsigned_uploads = 0
 progress_indicator = 2
 # Allow uploads for UNRELEASED packages
 allowed_distributions = .*
+
+[amd64]
+fqdn		= debomatic-amd64.debian.net
+incoming	= /srv/debomatic-amd64
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2
+
+[i386]
+fqdn		= debomatic-i386.debian.net
+incoming	= /srv/debomatic-i386
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2
+
+[armel]
+fqdn		= debomatic-armel.debian.net
+incoming	= /srv/debomatic-armel
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2
+
+[armhf]
+fqdn		= debomatic-armhf.debian.net
+incoming	= /srv/debomatic-armhf
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2
+
+[arm64]
+fqdn		= debomatic-arm64.debian.net
+incoming	= /srv/debomatic-arm64
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2
+
+[mips]
+fqdn		= debomatic-mips.debian.net
+incoming	= /srv/debomatic-mips
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+
+[mipsel]
+fqdn		= debomatic-mipsel.debian.net
+incoming	= /srv/debomatic-mipsel
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+
+[mips64el]
+fqdn		= debomatic-mips64el.debian.net
+incoming	= /srv/debomatic-mips64el
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1

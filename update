@@ -121,6 +121,8 @@ config_profile() {
 					logger '[OK]' "$src" "\"$path$append\" appended"
 					[ $DRYRUN -eq 0 ] &&
 						cat "$src" >> "$path$append"
+					[ -x "$src" ] &&
+						chmod u+x,g+x,o+x "$path$append"
 				fi
 			fi
 		fi
