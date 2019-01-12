@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# BINDMOUNTS is from ~/.pbuilderrc
+(cd ${BINDMOUNTS}; apt-ftparchive packages . > Packages)
+apt-get update

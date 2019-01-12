@@ -1,4 +1,0 @@
-#!/bin/sh
-
-(cd /home/roger/working/build-area; apt-ftparchive packages . > Packages)
-apt-get update
