@@ -1,0 +1,13 @@
+#!/bin/sh
+
+BUILDDIR="${BUILDDIR:-/tmp/buildd}"
+
+set -ex
+echo "+++ lintian output +++"
+
+for changes in $BUILDDIR/*.changes; do
+  su -c "lintian -IE --pedantic $changes; :" - pbuilder
+  echo $changes
+done
+
+echo "+++ end of lintian output +++"

@@ -1,12 +1,16 @@
 # this is your configuration file for pbuilder.
 # read pbuilderrc.5 document for notes on specific options.
 SOURCE_ONLY_CHANGES=yes
+PDEBUILD_PBUILDER=cowbuilder
 MIRRORSITE=https://deb.debian.org/debian
-BASEDIR=~roger/working
+BASEDIR=~rosh/working
+CCACHEDIR=/var/cache/pbuilder/ccache
 BINDMOUNTS=${BASEDIR}/build-area
+BUILDRESULT=$BINDMOUNTS
 HOOKDIR=${BASEDIR}/hook
-OTHERMIRROR="deb [trusted=yes] file://${BINDMOUNTS} ./"
-EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata"
+OTHERMIRROR="$OTHERMIRROR | deb [trusted=yes] file://${BINDMOUNTS} ./"
+EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache"
+EATMYDATA=yes
 
 # export for D05deps script
 export BINDMOUNTS

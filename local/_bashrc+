@@ -1,26 +1,38 @@
 
 alias auu='apt-get update && apt-get upgrade --no-install-recommends && apt-get autoremove && apt-get clean'
-alias iwlist='iwlist wlan0 scan |less -p ESSID'
+alias wlan='export WLAN=$(find /sys/class/net -follow -maxdepth 2 -name phy80211 2>/dev/null|cut -d/ -f5)'
+alias iwlist='wlan; sudo iwlist $WLAN scan|grep ESSID'
+alias iwinfo='wlan; sudo iwlist $WLAN scan|less -p ESSID'
+alias iwlist2='wlan; sudo iw $WLAN scan|grep SSID'
+alias iwinfo2='wlan; sudo iw $WLAN scan|less -p SSID'
 alias netconsole_ip='ip a add 192.168.11.1/24 dev eth0'
+alias check.ext4='fsck.ext4 -pDftt'
 
 alias serial='screen /dev/ttyUSB0 115200'
 alias du='du -h --max-depth=1'
-alias rsyncplain='rsync -rltDv'
+alias rsyncplain='rsync -rltDPv'
 alias netconsole='nc -l -u -p 6666 | tee ~/netconsole.log' # netconsole will send to 192.168.1.100:6666 # ip a add 192.168.1.100/24 dev eth0
 alias 7='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m'
+alias 7cp='7z a -t7z -mx0'
+alias 7secret='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -p -mhe'
 
 alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
 alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
 
 JOBS=$(($(nproc)*2-1))
+debian_oldstable_version=9
+debian_stable_version=10
+debian_oldstable=stretch
+debian_stable=buster
+
 alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias amendmerge="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '4{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias amendreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias resetgit='git clean -fdx; git reset --hard'
-alias resetrepo='repo forall -vc resetgit'
-alias reposyncnet='repo sync -c -n -j$JOBS'
-alias reposynclocal='repo sync -d -l -j$JOBS'
+alias resetrepo='repo --time forall -vc "git clean -fdxq; git reset --hard -q"'
+alias reposyncnet='repo --time sync -q -c -n -j$JOBS'
+alias reposynclocal='repo --time sync -q -d -l -j$JOBS'
 alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
 alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
 alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder'
@@ -31,14 +43,21 @@ alias debemail='export DEBEMAIL=$(git config user.email)'
 alias dch-r='debemail; dch -r ""; git add debian/changelog; git commit -m "Prepare to release $(dpkg-parsechangelog -SVersion)"; gitag'
 alias gitag='git tag debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD'
 alias deps='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends"'
-alias depsbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t stretch-backports"'
-alias bpostretch='debemail; dch --bpo -D stretch-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"; gitag'
-alias bposloppy='debemail; dch -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; sed "1 s/~bpo9+2/~bpo8+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"; gitag'
-alias bpostretchteam='debemail; dch --bpo -D stretch-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for stretch-backports"; gitag'
-alias bposloppyteam='debemail; dch --team -D jessie-backports-sloppy "Rebuild for jessie-backports-sloppy."; sed "1 s/~bpo9+2/~bpo8+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for jessie-backports-sloppy"; gitag'
+alias depsbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_stable}-backports"'
+alias depsoldbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_oldstable}-backports"'
+alias bpostable='debemail; dch --bpo -D ${debian_stable}-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag'
+alias bposloppy='debemail; dch --no-auto-nmu -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag'
+alias bpoldstable='debemail; dch --bpo --no-auto-nmu -D ${debian_oldstable}-backports "Rebuild for ${debian_oldstable}-backports."; sed -i "1 s/~bpo${debian_stable_version}+1/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports"; gitag'
+alias bpostableteam='debemail; dch --bpo -D ${debian_stable}-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag'
+alias bposloppyteam='debemail; dch --team -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag'
 alias dakrminfo='ssh mirror.ftp-master.debian.org "dak rm -Rn $1"'
 
-PATH=/usr/lib/ccache:$PATH:~/bin
+[ -z "$PATH_ORIG" ] && export PATH_ORIG=$PATH
+export PATH=/usr/lib/ccache:$PATH_ORIG:~/bin
+export USE_CCACHE=1
+export CCACHE_EXEC=$(which ccache)
+export CCACHE_CPP2=yes
+export CCACHE_COMPILERCHECK=content
 #export DEBEMAIL=rogershimizu@gmail.com
 export DEBEMAIL=rosh@debian.org
 export DEBNAME="Roger Shimizu"
@@ -46,8 +65,29 @@ export DEBNAME="Roger Shimizu"
 export DEB_BUILD_OPTIONS=parallel=$JOBS
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export VISUAL=vim
+#export http_proxy=
+#export no_proxy=
 export TZ='Asia/Tokyo'
+#export TZ='Europe/Sofia'
 
 export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 export XMODIFIERS=@im=fcitx
+
+pdebuild() {
+  [ -f debian/changelog ] &&
+    DIST=$(dpkg-parsechangelog|awk '/^Distribution: / {print $2}')
+  [ -z "$DIST" ] &&
+    DIST=$(lsb_release --short --codename)
+  BASEPATH=/var/cache/pbuilder/base-${DIST}.cow
+  [ ! -d $BASEPATH ] &&
+    DIST=${DIST}-backports &&
+    BASEPATH=/var/cache/pbuilder/base-${DIST}.cow
+  if [ -d $BASEPATH ]; then
+    echo /usr/bin/pdebuild -- --distribution $DIST --basepath $BASEPATH
+    /usr/bin/pdebuild -- --distribution $DIST --basepath $BASEPATH
+  else
+    echo cowbuilder folder does not exist: $BASEPATH
+  fi
+  unset DIST BASEPATH
+}
