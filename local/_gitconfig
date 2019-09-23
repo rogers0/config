@@ -6,6 +6,8 @@
 	ui = auto
 [push]
 	default = simple
+[diff]
+	noprefix = true
 [user]
 	name = Roger Shimizu
 	email = rogershimizu@gmail.com

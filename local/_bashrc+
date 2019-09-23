@@ -7,6 +7,7 @@ alias iwlist2='wlan; sudo iw $WLAN scan|grep SSID'
 alias iwinfo2='wlan; sudo iw $WLAN scan|less -p SSID'
 alias netconsole_ip='ip a add 192.168.11.1/24 dev eth0'
 alias check.ext4='fsck.ext4 -pDftt'
+alias zoom='flatpak run us.zoom.Zoom'
 
 alias serial='screen /dev/ttyUSB0 115200'
 alias du='du -h --max-depth=1'
@@ -31,14 +32,16 @@ alias amendmerge="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '4{p;q}'
 alias amendreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias resetgit='git clean -fdx; git reset --hard'
 alias resetrepo='repo --time forall -vc "git clean -fdxq; git reset --hard -q"'
+alias reposync='repo --time sync -q -c -d -j$JOBS'
 alias reposyncnet='repo --time sync -q -c -n -j$JOBS'
 alias reposynclocal='repo --time sync -q -d -l -j$JOBS'
+alias gitmp='find . -name tmp_pack_\*'
 alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
 alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
 alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder'
 alias gpbupdate='git-pbuilder update --override-config'
 
-alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1'
+alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1 --keyserver keyring.debian.org'
 alias debemail='export DEBEMAIL=$(git config user.email)'
 alias dch-r='debemail; dch -r ""; git add debian/changelog; git commit -m "Prepare to release $(dpkg-parsechangelog -SVersion)"; gitag'
 alias gitag='git tag debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD'
@@ -74,6 +77,73 @@ export GTK_IM_MODULE=fcitx
 export QT_IM_MODULE=fcitx
 export XMODIFIERS=@im=fcitx
 
+REPO_URL=https://android.googlesource.com/platform/manifest
+REPO_MIRROR=/data/mirror
+repo-init() {
+  echo repo --time init -q -u $REPO_URL -b $1 --reference=$REPO_MIRROR/$1
+  repo --time init -q -u $REPO_URL -b $1 --reference=$REPO_MIRROR/$1
+  echo repo --time sync -j$JOBS
+}
+adbserial() {
+  while true; do
+    case "$(adb devices|grep -w device|wc -l)" in
+    0)echo -e No device connected.\\nadb wait-for-device
+      ANDROID_SERIAL= adb -s "$1" wait-for-device
+      continue ;;
+    1)serial=$(adb devices|grep -w device|sed 's/device//g'|sed -e 's/[[:space:]]*$//'|tail -n1)
+      DEV_SERIAL=$serial
+      [ -n "$ANDROID_SERIAL" ] && DEV_SERIAL="$ANDROID_SERIAL"
+      [ -n "$1" ] && DEV_SERIAL="$1"
+      break ;;
+    *)unset DEV_SERIAL
+      [ -n "$ANDROID_SERIAL" ] && DEV_SERIAL="$ANDROID_SERIAL"
+      [ -n "$1" ] && DEV_SERIAL="$1"
+      [ -z "$DEV_SERIAL" ] && adb devices && return
+      break ;;
+    esac
+  done
+  echo adb tries connecting to $DEV_SERIAL
+}
+adbsomccleanup() {
+  adb wait-for-device shell "rm -rf /data/crashd* /mnt/sdcard/Crash*"
+}
+adbsomcskip() {
+  adbserial $1
+  while true; do
+    case "$(adb -s $DEV_SERIAL shell settings get secure user_setup_complete 2>/dev/null)" in
+    0)  adb -s $DEV_SERIAL shell settings put secure user_setup_complete 1
+      echo Done: adb shell settings put secure user_setup_complete 1
+      break ;;
+    1)  break ;;
+    *)  echo -n .
+      sleep 0.5
+      continue ;;
+    esac
+  done
+  adbsomccleanup
+  #adb -s $DEV_SERIAL shell setprop persist.sys.usb.testmode mtp
+}
+adbremount() {
+  adbserial $1
+  adb -s $DEV_SERIAL wait-for-device root
+  sleep 0.3
+  if adb -s $DEV_SERIAL wait-for-device remount|grep verity>/dev/null; then
+    adb -s $DEV_SERIAL wait-for-device disable-verity
+    adb -s $DEV_SERIAL wait-for-device reboot
+    adb -s $DEV_SERIAL wait-for-device root
+    sleep 0.3
+    adb -s $DEV_SERIAL wait-for-device remount
+  else
+    echo adb remount succeeded
+  fi
+  adbsomcskip $DEV_SERIAL
+}
+adbscreen() {
+  adbserial $1
+  SCREENCAP="Screenshot_${DEV_SERIAL}_$(date +"%Y%m%d-%H%M%S").png"
+  adb -s $DEV_SERIAL shell screencap -p > ${SCREENCAP}
+  echo ${SCREENCAP}
+}
 pdebuild() {
   [ -f debian/changelog ] &&
     DIST=$(dpkg-parsechangelog|awk '/^Distribution: / {print $2}')
@@ -90,4 +160,42 @@ pdebuild() {
     echo cowbuilder folder does not exist: $BASEPATH
   fi
   unset DIST BASEPATH
+}
+adbmmlist() {
+  timeout=5
+  [ -n "$1" ] && timeout="$1"
+  TARGET=$ANDROID_PRODUCT_OUT
+  [ -z "$TARGET" ] &&
+    printf "\nNot in Android environment.\nPlease run 'source build/envsetup.sh' and 'lunch' command first.\n\n" && return
+  find $TARGET/system -type f -cmin -$timeout | while read f; do {
+    printf "Update: $(eval "echo ${f##$TARGET}")\n"
+  }; done;
+  find $TARGET/vendor -type f -cmin -$timeout | while read f; do {
+    printf "Update: $(eval "echo ${f##$TARGET}")\n"
+  }; done
+}
+adbmmsync() {
+  timeout=5
+  [ -n "$1" ] && timeout="$1"
+  TARGET=$ANDROID_PRODUCT_OUT
+  [ -z "$TARGET" ] &&
+    printf "\nNot in Android environment.\nPlease run 'source build/envsetup.sh' and 'lunch' command first.\n\n" && return
+  adbremount
+  echo
+
+  find $TARGET/system -type f -cmin -$timeout | while read f; do {
+    printf "Update: $(eval "echo ${f##$TARGET}")\n"
+    adb push "$f" "$(eval "echo ${f##$TARGET}")";
+  }; done;
+  find $TARGET/vendor -type f -cmin -$timeout | while read f; do {
+    printf "Update: $(eval "echo ${f##$TARGET}")\n"
+    adb push "$f" "$(eval "echo ${f##$TARGET}")";
+  }; done
+
+  # To flush all cache
+  adb shell sync
+  printf "Restarting Camera!!!\n"
+  adb shell kill $(adb shell ps -A | grep camera.provider | awk '{print $2}')
+  printf "Clearing logcat!!!\n"
+  adb logcat -c
 }
