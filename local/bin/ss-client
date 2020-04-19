@@ -1,0 +1,93 @@
+#!/bin/sh
+
+BINDIR=$(dirname $0)
+CONFDIR=$(realpath $BINDIR/..)
+SSCONFIG=$CONFDIR/.ss-libev.json
+[ -f ${CONFDIR}/.gravity.list ] &&
+  HOSTS="--addn-hosts=${CONFDIR}/.gravity.list"
+DNSPORT=65353
+RESOLV=/etc/resolv.conf
+#SSRESOLV=${RESOLV}.ss-client
+PID_SSREDIR=/run/ss-redir.pid
+PID_SSTUNNEL=/run/ss-tunnel.pid
+PID_DNSMASQ=/run/dnsmasq/dnsmasq.pid
+KCPPLUGIN="--plugin $BINDIR/kcp-client"
+UDP_FALLBACK="-p 8388" # Required for kcptun case. Port is usual SS port, not KCP port.
+
+if [ ! -f $SSCONFIG ]; then
+  echo no config file: $SSCONFIG
+  exit 1
+fi
+
+SSSERVER=$(grep server $SSCONFIG|grep -v server_port|grep -v nameserver|grep -v server_port|cut -d\" -f4)
+SSPORT=$(grep server_port $SSCONFIG|cut -d: -f2|cut -d, -f1)
+SSLOCAL=$(grep local_port $SSCONFIG|cut -d: -f2|cut -d, -f1)
+SSDNS=$(grep nameserver $SSCONFIG|cut -d: -f2|cut -d\" -f2)
+[ -z "$SSDNS" ] && SSDNS="8.8.8.8"
+
+# Reset iptables and stop all services by this script
+for pid in $PID_SSREDIR $PID_SSTUNNEL; do
+  if [ -f $pid ]; then
+    kill -9 $(cat $pid)
+    rm -f $pid
+  fi
+done
+killall ss-redir 2>/dev/null
+killall ss-tunnel 2>/dev/null
+killall kcptun-client 2>/dev/null
+service dnsmasq stop
+start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PID_DNSMASQ --name dnsmasq
+iptables -F > /dev/null 2>&1
+iptables -t nat -F > /dev/null 2>&1
+iptables -t mangle -F > /dev/null 2>&1
+
+# Exit if there's a param in cmd line
+if [ -n "$1" ]; then
+#  [ -n "$SSRESOLV" -a -n "$RESOLV" -a -e "$SSRESOLV" ] &&
+#    rm -f "$RESOLV" &&
+#    mv "$SSRESOLV" "$RESOLV"
+  exit 0
+fi
+echo SS CONFIG:
+echo SERVER=$SSSERVER PORT=$SSPORT LOCAL=$SSLOCAL DNS=$SSDNS KCPPLUGIN=\"$KCPPLUGIN\"
+
+# Ignore your shadowsocks server's addresses
+# It's very IMPORTANT, just be careful.
+iptables -t nat -A OUTPUT -d $SSSERVER -j RETURN
+
+# DNS
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+
+# Ignore LANs and any other addresses you'd like to bypass the proxy
+# See Wikipedia and RFC5735 for full list of reserved networks.
+# See ashi009/bestroutetb for a highly optimized CHN route list.
+iptables -t nat -A OUTPUT -d 0.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 10.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 127.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 169.254.0.0/16 -j RETURN
+iptables -t nat -A OUTPUT -d 172.16.0.0/12 -j RETURN
+iptables -t nat -A OUTPUT -d 192.168.0.0/16 -j RETURN
+iptables -t nat -A OUTPUT -d 224.0.0.0/4 -j RETURN
+iptables -t nat -A OUTPUT -d 240.0.0.0/4 -j RETURN
+
+# Anything else should be redirected to shadowsocks's local port
+iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-ports $SSLOCAL
+
+set -x
+ss-redir -a nobody -c $SSCONFIG -f $PID_SSREDIR $KCPPLUGIN >/dev/null 2>&1
+#ss-tunnel -a nobody -c $SSCONFIG -f $PID_SSTUNNEL -l $DNSPORT -L $SSDNS:53 $UDP_FALLBACK >/dev/null 2>&1 &
+set +x
+#[ -n "$SSRESOLV" -a -n "$RESOLV" -a -f "$RESOLV" -a ! -e "$SSRESOLV" ] &&
+#  mv "$RESOLV" "$SSRESOLV" &&
+#  echo nameserver 127.0.0.1 > "$RESOLV" &&
+#  chmod 444 "$RESOLV"
+
+mkdir -p $(dirname $PID_DNSMASQ)
+chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
+set -x
+start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
+  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$DNSPORT $HOSTS

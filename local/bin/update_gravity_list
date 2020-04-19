@@ -1,0 +1,65 @@
+#!/bin/sh
+# Credit to:
+#  * https://dlaa.me/blog/post/skyhole
+#  * https://github.com/DonZalmrol/PiHole
+#  * https://github.com/privacy-protection-tools/anti-AD
+
+UpstreamHosts=" \
+  https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts \
+  https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/fakenews/hosts \
+  https://raw.githubusercontent.com/AdAway/adaway.github.io/master/hosts.txt \
+  https://zerodot1.gitlab.io/CoinBlockerLists/hosts_browser \
+  http://sysctl.org/cameleon/hosts \
+"
+UpstreamLists=" \
+  https://mirror1.malwaredomains.com/files/justdomains \
+  https://s3.amazonaws.com/lists.disconnect.me/simple_tracking.txt \
+  https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt \
+  https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt \
+  https://raw.githubusercontent.com/kboghdady/youTube_ads_4_pi-hole/master/youtubelist.txt \
+"
+
+whitelist=" \
+  s.youtube.com \
+"
+
+TargetList=~/.gravity.list
+TmpList=.tmp.gravity.list
+update=$1
+[ -z "$update" ] &&
+  update=0
+rm -f $TmpList
+
+i=0
+for upstream in $UpstreamHosts; do
+  [ $update -eq 1 ] &&
+    wget --compression=gzip -O hosts$i $upstream
+  grep -e ^0\.0\.0\.0 -e ^127\.0\.0\.1 hosts$i|cut -d" " -f2|
+    while read line; do
+    [ -z "$line" -o "$line" = "0.0.0.0" -o "$line" = localhost -o "$line" = local ] &&
+      continue
+    echo $line
+  done
+  i=$((i+1))
+done >> $TmpList
+
+i=0
+for upstream in $UpstreamLists; do
+  [ $update -eq 1 ] &&
+    wget --compression=gzip -O lists$i $upstream
+  grep -v ^\# lists$i|while read line; do
+    [ -z "$line" ] &&
+      continue
+    echo $line
+  done
+  i=$((i+1))
+done >> $TmpList
+
+
+for host in $whitelist; do
+  sed -i /^$host/d $TmpList
+done
+sed -i s/^0.0.0.0.// $TmpList
+
+sort $TmpList |uniq -i|sed "s:^:0.0.0.0 :" > $TargetList
+rm $TmpList

@@ -11,6 +11,7 @@ HOOKDIR=${BASEDIR}/hook
 OTHERMIRROR="$OTHERMIRROR | deb [trusted=yes] file://${BINDMOUNTS} ./"
 EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache"
 EATMYDATA=yes
+#USENETWORK=yes
 
 # export for D05deps script
 export BINDMOUNTS

@@ -1,0 +1,119 @@
+#!/bin/sh
+
+BINDIR=$(dirname $0)
+CONFDIR=$(realpath $BINDIR/..)
+SSCONFIG=$CONFDIR/.ss-libev.json
+[ -f ${CONFDIR}/.gravity.list ] &&
+  HOSTS="--addn-hosts=${CONFDIR}/.gravity.list"
+DNSPORT=65353
+RESOLV=/etc/resolv.conf
+#VPNRESOLV=${RESOLV}.ss-vpn
+VPN_DNS=$(grep nameserver $RESOLV|cut -d" " -f2)
+PID_SSREDIR=/run/ss-redir.pid
+PID_SSTUNNEL=/run/ss-tunnel.pid
+PID_DNSMASQ=/run/dnsmasq/dnsmasq.pid
+KCPPLUGIN="--plugin $BINDIR/kcp-client"
+UDP_FALLBACK="-p 8388" # Required for kcptun case. Port is usual SS port, not KCP port.
+
+echo VPN_DNS=$VPN_DNS
+ip r
+
+if [ -n "$1" -a "$1" = stop ]; then
+#  [ -n "$VPNRESOLV" -a -n "$RESOLV" -a -e "$VPNRESOLV" ] &&
+#    rm -f "$RESOLV" &&
+#    mv "$VPNRESOLV" "$RESOLV"
+  for pid in $PID_SSREDIR $PID_SSTUNNEL; do
+    if [ -f $pid ]; then
+      kill -9 $(cat $pid)
+      rm -f $pid
+    fi
+  done
+  service dnsmasq stop
+  start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PID_DNSMASQ --name dnsmasq
+  killall -9 ss-redir 2>/dev/null
+  killall -9 ss-tunnel 2>/dev/null
+  killall kcptun-client 2>/dev/null
+  iptables -F > /dev/null 2>&1
+  iptables -t nat -F > /dev/null 2>&1
+  iptables -t mangle -F > /dev/null 2>&1
+  echo Stopped.
+  exit 0
+fi
+
+for dev in tun0 ppp0; do
+  VpnGateWay=$(ip a show dev $dev|grep inet|awk '{print $2}'|head -n1)
+  if [ -n "$VpnGateWay" ]; then
+    DEV=$dev
+    break
+  fi
+done
+if [ -z "$VpnGateWay" ]; then
+  printf VPN not detected.\\nExit.
+  #$0 stop
+  exit 1
+fi
+
+SSSERVER=$(grep server $SSCONFIG|grep -v server_port|grep -v nameserver|grep -v server_port|cut -d\" -f4)
+SSPORT=$(grep server_port $SSCONFIG|cut -d: -f2|cut -d, -f1)
+SSLOCAL=$(grep local_port $SSCONFIG|cut -d: -f2|cut -d, -f1)
+SSDNS=$(grep nameserver $SSCONFIG|cut -d: -f2|cut -d\" -f2)
+[ -z "$SSDNS" ] && SSDNS="8.8.8.8"
+
+echo "Vpn GateWay is $VpnGateWay"
+set -x
+sudo ip r add 10.128.0.0/9 dev $DEV
+sudo ip r del 0.0.0.0/1 dev $DEV
+sudo ip r del 128.0.0.0/1 dev $DEV
+set +x
+
+[ -z "$1" ] &&
+  exit 0
+$0 stop
+
+echo SS CONFIG:
+echo SERVER=$SSSERVER PORT=$SSPORT LOCAL=$SSLOCAL DNS=$SSDNS KCPPLUGIN=\"$KCPPLUGIN\"
+
+# Ignore your shadowsocks server's addresses
+# It's very IMPORTANT, just be careful.
+iptables -t nat -A OUTPUT -d $SSSERVER -j RETURN
+VpnGateWay=$(ip r |grep via|grep -v ^default|grep -v ^192.168|cut -d" " -f1)
+[ -n "$VpnGateWay" ] && iptables -t nat -A OUTPUT -d $VpnGateWay -j RETURN
+
+# DNS
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+
+# Ignore LANs and any other addresses you'd like to bypass the proxy
+# See Wikipedia and RFC5735 for full list of reserved networks.
+# See ashi009/bestroutetb for a highly optimized CHN route list.
+iptables -t nat -A OUTPUT -d 0.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 10.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 127.0.0.0/8 -j RETURN
+iptables -t nat -A OUTPUT -d 169.254.0.0/16 -j RETURN
+iptables -t nat -A OUTPUT -d 172.16.0.0/12 -j RETURN
+iptables -t nat -A OUTPUT -d 192.168.0.0/16 -j RETURN
+iptables -t nat -A OUTPUT -d 224.0.0.0/4 -j RETURN
+iptables -t nat -A OUTPUT -d 240.0.0.0/4 -j RETURN
+
+# Anything else should be redirected to shadowsocks's local port
+iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-ports $SSLOCAL
+
+set -x
+ss-redir -a nobody -c $SSCONFIG -f $PID_SSREDIR $KCPPLUGIN >/dev/null 2>&1
+#ss-tunnel -a nobody -c $SSCONFIG -f $PID_SSTUNNEL -l $DNSPORT -L $SSDNS:53 $UDP_FALLBACK >/dev/null 2>&1 &
+set +x
+#[ -n "$VPNRESOLV" -a -n "$RESOLV" -a -f "$RESOLV" -a ! -e "$VPNRESOLV" ] &&
+#  mv "$RESOLV" "$VPNRESOLV" &&
+#  echo nameserver 127.0.0.1 > "$RESOLV" &&
+#  chmod 444 "$RESOLV"
+
+mkdir -p $(dirname $PID_DNSMASQ)
+chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
+. $BINDIR/vpndomain
+set -x
+start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
+  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$DNSPORT $HOSTS \
+  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${VPN_DNS}

@@ -13,6 +13,14 @@ progress_indicator = 2
 # Allow uploads for UNRELEASED packages
 allowed_distributions = .*
 
+[fasttrack]
+fqdn		= fasttrack.debian.net
+incoming	= /pub/UploadQueue/
+login		= anonymous
+allow_dcut	= 1
+method		= ftp
+allowed_distributions = (?!UNRELEASED|.*-security)
+
 [amd64]
 fqdn		= debomatic-amd64.debian.net
 incoming	= /srv/debomatic-amd64
@@ -71,6 +79,7 @@ method		= scp
 allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
+progress_indicator = 2
 
 [mipsel]
 fqdn		= debomatic-mipsel.debian.net
@@ -80,6 +89,7 @@ method		= scp
 allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
+progress_indicator = 2
 
 [mips64el]
 fqdn		= debomatic-mips64el.debian.net
@@ -89,3 +99,4 @@ method		= scp
 allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
+progress_indicator = 2

@@ -1,0 +1,5 @@
+#!/bin/sh
+
+kcptun-client -r "$SS_REMOTE_HOST":"$SS_REMOTE_PORT" -l "$SS_LOCAL_HOST":"$SS_LOCAL_PORT" \
+  --conn 4 --dscp 46 --crypt none --sndwnd 512 --nocomp --tcp --quiet 2>&1 \
+  >/dev/null

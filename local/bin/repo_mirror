@@ -1,0 +1,21 @@
+#!/bin/sh -x
+
+BRANCH=$2
+TARGET=${1}/${BRANCH}
+REPO=https://android.googlesource.com/platform/manifest
+
+LOG=repo.log #repo_$(date +%Y%m%d%H%M).log
+JOBS=$(($(nproc)*2-1))
+
+if [ -n "$TARGET" -a ! -d "$TARGET" -a -n "$BRANCH" ]; then
+  mkdir -p "$TARGET"
+  cd "$TARGET"
+  repo --time init -q -c -u $REPO -b "$BRANCH" --mirror
+  cd -
+fi
+
+if [ -n "$TARGET" -a -d "$TARGET/.repo" ]; then
+  cd "$TARGET"
+  repo --time sync -q -c -n -j$JOBS 2>&1 | tee $LOG
+  chmod g+w -R "$TARGET"
+fi

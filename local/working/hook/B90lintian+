@@ -6,7 +6,7 @@ set -ex
 echo "+++ lintian output +++"
 
 for changes in $BUILDDIR/*.changes; do
-  su -c "lintian -IE --pedantic $changes; :" - pbuilder
+  su -c "lintian -IE --pedantic --no-tag-display-limit $changes; :" - pbuilder
   echo $changes
 done
 

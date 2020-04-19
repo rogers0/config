@@ -1,0 +1,10 @@
+#!/bin/sh
+
+base0=nosscire
+base1=ynos
+base2=elibom
+base3=sresuproc
+domain0=$(echo $base0$base1|rev).net
+domain1=$(echo $base2$base1|rev).net
+domain2=$(echo $base2$base1|rev).com
+domain3=$(echo $base3|rev).net

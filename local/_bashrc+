@@ -36,10 +36,15 @@ alias reposync='repo --time sync -q -c -d -j$JOBS'
 alias reposyncnet='repo --time sync -q -c -n -j$JOBS'
 alias reposynclocal='repo --time sync -q -d -l -j$JOBS'
 alias gitmp='find . -name tmp_pack_\*'
+alias gbprefresh='gbp pq import && gbp pq export --drop'
+alias gbpimport='gbp import-dscs --debsnap --author-is-committer --author-date-is-committer-date --create-missing-branches'
 alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
-alias gbpp='gbp buildpackage -us -uc --git-ignore-branch --git-pristine-tar'
-alias gpb='gbp buildpackage --git-ignore-branch --git-pristine-tar --git-pbuilder'
+alias gbpg='gbp buildpackage -us -uc --git-ignore-branch'
+alias gbpp='gbpg --git-pristine-tar'
+alias gpbg='gbp buildpackage --git-ignore-branch --git-pbuilder'
+alias gpb='gpbg --git-pristine-tar'
 alias gpbupdate='git-pbuilder update --override-config'
+alias githubremote='git remote add github $(grep Homepage: debian/control|cut -d" " -f2)'
 
 alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1 --keyserver keyring.debian.org'
 alias debemail='export DEBEMAIL=$(git config user.email)'
@@ -80,9 +85,10 @@ export XMODIFIERS=@im=fcitx
 REPO_URL=https://android.googlesource.com/platform/manifest
 REPO_MIRROR=/data/mirror
 repo-init() {
-  echo repo --time init -q -u $REPO_URL -b $1 --reference=$REPO_MIRROR/$1
-  repo --time init -q -u $REPO_URL -b $1 --reference=$REPO_MIRROR/$1
-  echo repo --time sync -j$JOBS
+  set -x
+  repo --time init -q --current-branch -u $REPO_URL -b $1 --depth=10 --reference=$REPO_MIRROR/$1
+  set +x
+  echo repo --time sync -q -c -d -j$JOBS
 }
 adbserial() {
   while true; do

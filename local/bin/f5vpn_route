@@ -1,0 +1,79 @@
+#!/bin/sh
+
+[ -f $(dirname $0)/../.gravity.list ] &&
+  HOSTS="--addn-hosts=$(dirname $0)/../.gravity.list"
+RESOLV=/etc/resolv.conf
+#VPNRESOLV=${RESOLV}.vpn
+VPN_DNS=$(grep nameserver $RESOLV|cut -d" " -f2)
+PID_SSREDIR=/run/ss-redir.pid
+PID_SSTUNNEL=/run/ss-tunnel.pid
+PID_DNSMASQ=/run/dnsmasq/dnsmasq.pid
+
+echo VPN_DNS=$VPN_DNS
+ip r
+
+if [ -n "$1" -a "$1" = stop ]; then
+#  [ -n "$VPNRESOLV" -a -n "$RESOLV" -a -e "$VPNRESOLV" ] &&
+#    rm -f "$RESOLV" &&
+#    mv "$VPNRESOLV" "$RESOLV"
+  for pid in $PID_SSREDIR $PID_SSTUNNEL; do
+    if [ -f $pid ]; then
+      kill -9 $(cat $pid)
+      rm -f $pid
+    fi
+  done
+  service dnsmasq stop
+  start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PID_DNSMASQ --name dnsmasq
+  killall -9 ss-redir 2>/dev/null
+  killall -9 ss-tunnel 2>/dev/null
+  killall kcptun-client 2>/dev/null
+  iptables -F > /dev/null 2>&1
+  iptables -t nat -F > /dev/null 2>&1
+  iptables -t mangle -F > /dev/null 2>&1
+  echo Stopped.
+  exit 0
+fi
+
+for dev in tun0 ppp0; do
+  VpnGateWay=$(ip a show dev $dev|grep inet|awk '{print $2}'|head -n1)
+  if [ -n "$VpnGateWay" ]; then
+    DEV=$dev
+    break
+  fi
+done
+if [ -z "$VpnGateWay" ]; then
+  printf VPN not detected.\\nExit.
+  #$0 stop
+  exit 1
+fi
+
+echo "Vpn GateWay is $VpnGateWay"
+set -x
+sudo ip r add 10.128.0.0/9 dev $DEV
+sudo ip r del 0.0.0.0/1 dev $DEV
+sudo ip r del 128.0.0.0/1 dev $DEV
+set +x
+
+[ -z "$1" ] &&
+  exit 0
+$0 stop
+
+# DNS
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+
+#[ -n "$VPNRESOLV" -a -n "$RESOLV" -a -f "$RESOLV" -a ! -e "$VPNRESOLV" ] &&
+#  mv "$RESOLV" "$VPNRESOLV" &&
+#  echo nameserver 127.0.0.1 > "$RESOLV" &&
+#  chmod 444 "$RESOLV"
+
+mkdir -p $(dirname $PID_DNSMASQ)
+chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
+. $(dirname $0)/vpndomain
+set -x
+start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
+  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=8.8.8.8 $HOSTS \
+  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${VPN_DNS}
