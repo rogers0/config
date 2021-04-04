@@ -1,7 +1,9 @@
 #!/bin/sh
 
-[ -f $(dirname $0)/../.gravity.list ] &&
-  HOSTS="--addn-hosts=$(dirname $0)/../.gravity.list"
+BINDIR=$(dirname $0)
+[ -f ${BINDIR}/../.gravity.list ] &&
+  HOSTS="--addn-hosts=${BINDIR}/../.gravity.list"
+DNSPORT=65353	# dnsmasq listens on 65353
 RESOLV=/etc/resolv.conf
 #VPNRESOLV=${RESOLV}.vpn
 VPN_DNS=$(grep nameserver $RESOLV|cut -d" " -f2)
@@ -50,6 +52,9 @@ fi
 echo "Vpn GateWay is $VpnGateWay"
 set -x
 sudo ip r add 10.128.0.0/9 dev $DEV
+sudo ip r add 10.26.60.0/30 dev $DEV
+sudo ip r add 10.26.0.0/19 dev $DEV
+sudo ip r add 172.51.8.0/21 dev $DEV
 sudo ip r del 0.0.0.0/1 dev $DEV
 sudo ip r del 128.0.0.0/1 dev $DEV
 set +x
@@ -61,8 +66,8 @@ $0 stop
 # DNS
 iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
 iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
-iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
-iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
 
 #[ -n "$VPNRESOLV" -a -n "$RESOLV" -a -f "$RESOLV" -a ! -e "$VPNRESOLV" ] &&
 #  mv "$RESOLV" "$VPNRESOLV" &&
@@ -71,9 +76,9 @@ iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
 
 mkdir -p $(dirname $PID_DNSMASQ)
 chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
-. $(dirname $0)/vpndomain
+. $BINDIR/vpndomain
 set -x
 start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
-  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -p$DNSPORT -P1280 \
   --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=8.8.8.8 $HOSTS \
-  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${VPN_DNS}
+  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${domain4}/${domain5}/${VPN_DNS}

@@ -5,7 +5,7 @@ CONFDIR=$(realpath $BINDIR/..)
 SSCONFIG=$CONFDIR/.ss-libev.json
 [ -f ${CONFDIR}/.gravity.list ] &&
   HOSTS="--addn-hosts=${CONFDIR}/.gravity.list"
-DNSPORT=65353
+DNSPORT=65353	# stubby listens on 65352, while dnsmasq listens on 65353
 RESOLV=/etc/resolv.conf
 #VPNRESOLV=${RESOLV}.ss-vpn
 VPN_DNS=$(grep nameserver $RESOLV|cut -d" " -f2)
@@ -62,6 +62,9 @@ SSDNS=$(grep nameserver $SSCONFIG|cut -d: -f2|cut -d\" -f2)
 echo "Vpn GateWay is $VpnGateWay"
 set -x
 sudo ip r add 10.128.0.0/9 dev $DEV
+sudo ip r add 10.26.60.0/30 dev $DEV
+sudo ip r add 10.26.0.0/19 dev $DEV
+sudo ip r add 172.51.8.0/21 dev $DEV
 sudo ip r del 0.0.0.0/1 dev $DEV
 sudo ip r del 128.0.0.0/1 dev $DEV
 set +x
@@ -82,8 +85,8 @@ VpnGateWay=$(ip r |grep via|grep -v ^default|grep -v ^192.168|cut -d" " -f1)
 # DNS
 iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
 iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
-iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
-iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
 
 # Ignore LANs and any other addresses you'd like to bypass the proxy
 # See Wikipedia and RFC5735 for full list of reserved networks.
@@ -96,6 +99,8 @@ iptables -t nat -A OUTPUT -d 172.16.0.0/12 -j RETURN
 iptables -t nat -A OUTPUT -d 192.168.0.0/16 -j RETURN
 iptables -t nat -A OUTPUT -d 224.0.0.0/4 -j RETURN
 iptables -t nat -A OUTPUT -d 240.0.0.0/4 -j RETURN
+# special support for Jira/Confluence
+iptables -t nat -A OUTPUT -d 172.51.8.0/21 -j RETURN
 
 # Anything else should be redirected to shadowsocks's local port
 iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-ports $SSLOCAL
@@ -114,6 +119,6 @@ chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
 . $BINDIR/vpndomain
 set -x
 start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
-  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
-  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$DNSPORT $HOSTS \
-  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${VPN_DNS}
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -p$DNSPORT -P1280 \
+  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$((DNSPORT-1)) $HOSTS \
+  --local=/${domain0}/${domain1}/${domain2}/${domain3}/${domain4}/${domain5}/${VPN_DNS}

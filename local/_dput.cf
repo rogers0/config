@@ -100,3 +100,13 @@ allow_unsigned_uploads	= 0
 allow_dcut	= 1
 scp_compress= 1
 progress_indicator = 2
+
+[ppc64el]
+fqdn		= debomatic-ppc64el.debian.net
+incoming	= /srv/debomatic-ppc64el
+login		= debomatic
+method		= scp
+allow_unsigned_uploads	= 0
+allow_dcut	= 1
+scp_compress= 1
+progress_indicator = 2

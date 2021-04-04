@@ -8,8 +8,14 @@ CCACHEDIR=/var/cache/pbuilder/ccache
 BINDMOUNTS=${BASEDIR}/build-area
 BUILDRESULT=$BINDMOUNTS
 HOOKDIR=${BASEDIR}/hook
-OTHERMIRROR="$OTHERMIRROR | deb [trusted=yes] file://${BINDMOUNTS} ./"
-EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache"
+#if [ -z "${DIST}" ] && [ -r "debian/changelog" ]; then
+#    DIST=$(dpkg-parsechangelog | awk '/^Distribution: / {print $2}')
+#fi
+#OTHERMIRROR="$OTHERMIRROR | deb ${MIRRORSITE} ${DIST} main"
+#OTHERMIRROR="$OTHERMIRROR | deb [trusted=yes] file://${BINDMOUNTS} ./"
+#OTHERMIRROR="$OTHERMIRROR | deb http://incoming.debian.org/debian-buildd buildd-${DIST} main"
+EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache autodep8 autopkgtest"
+#PBUILDERSATISFYDEPENDSCMD="/usr/lib/pbuilder/pbuilder-satisfydepends-apt"		# required for cross-build
 EATMYDATA=yes
 #USENETWORK=yes
 

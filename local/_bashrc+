@@ -1,10 +1,13 @@
 
 alias auu='apt-get update && apt-get upgrade --no-install-recommends && apt-get autoremove && apt-get clean'
 alias wlan='export WLAN=$(find /sys/class/net -follow -maxdepth 2 -name phy80211 2>/dev/null|cut -d/ -f5)'
-alias iwlist='wlan; sudo iwlist $WLAN scan|grep ESSID'
-alias iwinfo='wlan; sudo iwlist $WLAN scan|less -p ESSID'
-alias iwlist2='wlan; sudo iw $WLAN scan|grep SSID'
-alias iwinfo2='wlan; sudo iw $WLAN scan|less -p SSID'
+alias iwlist='wlan; (sudo iwlist $WLAN scan|grep ESSID:|sed -e s/^[[:space:]]*ESSID:\"// -e s/\"$//; sudo iw $WLAN scan|grep SSID:|sed -e s/^[[:space:]]*SSID:[[:space:]]//)|sort|uniq'
+alias iwlist1='wlan; sudo iwlist $WLAN scan|grep ESSID:|sed -e s/^[[:space:]]*ESSID:\"// -e s/\"$//'
+alias iwlist2='wlan; sudo iw $WLAN scan|grep SSID:|sed -e s/^[[:space:]]*SSID:[[:space:]]//'
+alias iwinfo='wlan; sudo iwlist $WLAN scan|less -p ESSID:'
+alias iwinfo2='wlan; sudo iw $WLAN scan|less -p SSID:'
+alias iwfreq='wlan; sudo iwlist $WLAN freq'
+alias iwfreq2='sudo iw list'
 alias netconsole_ip='ip a add 192.168.11.1/24 dev eth0'
 alias check.ext4='fsck.ext4 -pDftt'
 alias zoom='flatpak run us.zoom.Zoom'
@@ -31,45 +34,63 @@ alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}
 alias amendmerge="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '4{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias amendreset="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '3{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias resetgit='git clean -fdx; git reset --hard'
-alias resetrepo='repo --time forall -vc "git clean -fdxq; git reset --hard -q"'
+alias gtm='_alias_(){ set -x; if [ $# -eq 1 ]; then gbranch=HEAD^; gfile="$1"; else gbranch="$1"; gfile="$2"; fi; git checkout "$gbranch" "$gfile"; mv "$gfile" "$gfile"_gtm; git checkout HEAD "$gfile"; vimdiff "$gfile" "$gfile"_gtm; set +x;unset -f _alias_;};_alias_'
+alias resetrepo='repo --time forall -j$JOBS -vc "git clean -fdxq; git reset --hard -q"'
 alias reposync='repo --time sync -q -c -d -j$JOBS'
 alias reposyncnet='repo --time sync -q -c -n -j$JOBS'
 alias reposynclocal='repo --time sync -q -d -l -j$JOBS'
-alias gitmp='find . -name tmp_pack_\*'
+alias gitmp='find . -name tmp_pack_\* -exec du -h {} \;'
+alias gitmp2='find . -name tmp_pack_\* -exec dirname {} \; |uniq|xargs ls -l'
+alias gbpupstream='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref --upstream-tree=$(git rev-parse $1) -u${ver} --debian-branch=$(git branch --show-current)&& dch -v"${ver}-1" "New upstream release $ver";set +x;unset ver;unset -f _alias_;};_alias_'
+alias gbpuptag='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref -u${ver} --debian-branch=$(git branch --show-current)&&dch -v"${ver}-1" "New upstream release $ver";set +x;unset ver;unset -f _alias_;};_alias_'
 alias gbprefresh='gbp pq import && gbp pq export --drop'
 alias gbpimport='gbp import-dscs --debsnap --author-is-committer --author-date-is-committer-date --create-missing-branches'
-alias gbpnew='gbp buildpackage -us -uc --git-ignore-branch --git-compression=xz'
-alias gbpg='gbp buildpackage -us -uc --git-ignore-branch'
+alias gpbga='gbp buildpackage --git-ignore-branch --git-pbuilder'
+alias gpbba='gpbga --git-no-create-orig'
+alias gbpga='gbp buildpackage -us -uc --git-ignore-branch --git-builder="debuild --no-lintian -i -I"'
+alias gbppa='gbpga --git-pristine-tar'
+alias gbpba='gbpga --git-no-create-orig'
+alias gpba='gpbga --git-pristine-tar'
+alias gpbg='gpbga --git-arch=i386'
+alias gpbb='gpbg --git-no-create-orig'
+alias gbpg='gbpga --git-arch=i386'
 alias gbpp='gbpg --git-pristine-tar'
-alias gpbg='gbp buildpackage --git-ignore-branch --git-pbuilder'
+alias gbpb='gbpg --git-no-create-orig'
 alias gpb='gpbg --git-pristine-tar'
+alias gbpnew='gbpg --git-compression=xz'
 alias gpbupdate='git-pbuilder update --override-config'
 alias githubremote='git remote add github $(grep Homepage: debian/control|cut -d" " -f2)'
 
-alias getkey='gpg --recv-keys 0x6C6ACD6417B3ACB1 --keyserver keyring.debian.org'
+alias getkey='_alias_(){ set -x;gpg --keyserver hkps://keyring.debian.org --keyserver-options self-sigs-only --recv-keys $DEBKEY;set +x;unset -f _alias_;};_alias_'
+alias getkeytmp='_alias_(){ key=$DEBKEY;[ $# -eq 1 ]&&key=$1;set -x;TMPKEYRING=/tmp/gnupg_tmp;gpg --no-default-keyring --keyring $TMPKEYRING --keyserver hkps://keyring.debian.org --recv-keys $key;du $TMPKEYRING;gpg --no-default-keyring --keyring $TMPKEYRING --list-key;rm -f $TMPKEYRING;set +x;unset TMPKEYRING key;unset -f _alias_;};_alias_'
+alias getkeydd='_alias_(){ id=rosh;[ $# -eq 1 ]&&id=$1;set -x;finger $id/key@db.debian.org|gpg --list-options show-keyring 2>/dev/null;set +x;unset id;unset -f _alias_;};_alias_'
 alias debemail='export DEBEMAIL=$(git config user.email)'
 alias dch-r='debemail; dch -r ""; git add debian/changelog; git commit -m "Prepare to release $(dpkg-parsechangelog -SVersion)"; gitag'
-alias gitag='git tag debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD'
+alias dch-rr='debemail; dch -r ""; git add debian/changelog; git commit --amend --reset-author --no-edit; gitag -f'
+alias gitag='_alias_(){ git tag $@ debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD;unset -f _alias_;};_alias_'
 alias deps='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends"'
 alias depsbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_stable}-backports"'
 alias depsoldbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_oldstable}-backports"'
-alias bpostable='debemail; dch --bpo -D ${debian_stable}-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag'
-alias bposloppy='debemail; dch --no-auto-nmu -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag'
+alias bpover='prevbpover=$(rmadison -s ${debian_oldstable}-backports-sloppy $(dpkg-parsechangelog -SSource)|cut -d\| -f2|tr -d '[:space:]'); [ -z "$prevbpover" ] && prevbpover=$(rmadison -s ${debian_stable}-backports $(dpkg-parsechangelog -SSource)|cut -d\| -f2|tr -d '[:space:]'); [ -z "$prevbpover" ] && prevbpover=0.0~~'
+alias bpostable='debemail; dch --bpo -D ${debian_stable}-backports ""; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag; bpover; echo gbp ... -v$prevbpover'
+alias bposloppy='debemail; dch --no-auto-nmu -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag; bpover; echo gbp ... -v$prevbpover'
 alias bpoldstable='debemail; dch --bpo --no-auto-nmu -D ${debian_oldstable}-backports "Rebuild for ${debian_oldstable}-backports."; sed -i "1 s/~bpo${debian_stable_version}+1/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports"; gitag'
-alias bpostableteam='debemail; dch --bpo -D ${debian_stable}-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag'
-alias bposloppyteam='debemail; dch --team -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag'
-alias dakrminfo='ssh mirror.ftp-master.debian.org "dak rm -Rn $1"'
+alias bpostableteam='debemail; dch --bpo -D ${debian_stable}-backports "Team upload."; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_stable}-backports"; gitag; bpover; echo gbp ... -v$prevbpover'
+alias bposloppyteam='debemail; dch --team -D ${debian_oldstable}-backports-sloppy "Rebuild for ${debian_oldstable}-backports-sloppy."; sed -i "1 s/~bpo${debian_stable_version}+2/~bpo${debian_oldstable_version}+1/" debian/changelog; git add debian/changelog; git commit -m "Rebuild as $(dpkg-parsechangelog -SVersion) for ${debian_oldstable}-backports-sloppy"; gitag; bpover; echo gbp ... -v$prevbpover'
+alias dakrminfo='_alias_(){ set -x;ssh mirror.ftp-master.debian.org "dak rm -Rn $1";set +x;unset -f _alias_;};_alias_'
+alias dcutcmd='_alias_(){ set -x;echo "$2"|gpg --clearsign>f.commands;dcut --host $1 -U f.commands;set +x;unset -f _alias_;};_alias_'
 
 [ -z "$PATH_ORIG" ] && export PATH_ORIG=$PATH
 export PATH=/usr/lib/ccache:$PATH_ORIG:~/bin
 export USE_CCACHE=1
 export CCACHE_EXEC=$(which ccache)
+export NDK_CCACHE=ccache
 export CCACHE_CPP2=yes
 export CCACHE_COMPILERCHECK=content
-#export DEBEMAIL=rogershimizu@gmail.com
 export DEBEMAIL=rosh@debian.org
 export DEBNAME="Roger Shimizu"
-#DEBFULLNAME="Roger Shimizu"
+export DEBKEY=0x6C6ACD6417B3ACB1
+export DEBFULLNAME=$DEBNAME
 export DEB_BUILD_OPTIONS=parallel=$JOBS
 export SSH_AUTH_SOCK=$(gpgconf --list-dirs agent-ssh-socket)
 export VISUAL=vim
@@ -205,3 +226,64 @@ adbmmsync() {
   printf "Clearing logcat!!!\n"
   adb logcat -c
 }
+
+# porterbox aliases start from 'p'
+alias psetup='_alias_() { \
+  count=$(schroot -l|grep chroot:sid_|wc -l); \
+  arch_list=$(schroot -l|grep chroot:sid_|sed -e s/^chroot:sid_// -e s/-dchroot$//); \
+  dist=sid; \
+  if [ $count -eq 1 ]; then \
+    arch=$arch_list; \
+  else \
+    if [ -n "$1" ]; then \
+      arch="$1"; \
+      [ -n "$2" ] && dist="$2"; \
+    else \
+      echo All schroot architectures supported on this host:; \
+      echo $arch_list; \
+      echo -n "Architecture to create: " && read arch; \
+    fi; \
+  fi; \
+  set -x; \
+  sessionID=${USER}-${dist}-${arch}; \
+  schroot-list-sessions; \
+  schroot -b -c ${dist}_${arch}-dchroot -n $sessionID; \
+  dd-schroot-cmd -c $sessionID apt-get update; \
+  dd-schroot-cmd -c $sessionID apt-get dist-upgrade -y; \
+  dd-schroot-cmd -c $sessionID apt-get install -y git-buildpackage pristine-tar bash-completion ccache vim; \
+  set +x; \
+  echo Chroot session ready to use: $sessionID; \
+  unset -f _alias_; \
+};_alias_'
+alias parch='_alias_(){ \
+  count=$(schroot-list-sessions|cut -d: -f1|wc -l); \
+  arch_list=$(schroot-list-sessions|cut -d: -f1|sed s/${USER}-//); \
+  dist=sid; \
+  if [ $count -eq 0 ]; then \
+    echo There is no schroot available, please use "psetup <arch>" to create one.; \
+    unset -f _alias_; \
+    return; \
+  elif [ $count -eq 1 ]; then \
+    arch=$arch_list; \
+  else \
+    if [ -n "$1" ]; then \
+      arch="$1"; \
+      [ -n "$2" ] && dist="$2"; \
+    else \
+      echo All schroot architectures created on this host:; \
+      echo $arch_list; \
+      echo -n "Architecture to use: " && read arch; \
+    fi; \
+  fi; \
+  set -x; \
+  sessionID=${USER}-${dist}-${arch}; \
+  set +x; \
+  echo Chroot session to use: $sessionID; \
+  unset -f _alias_; \
+};_alias_'
+alias pdeps='_alias_(){ set -x;dd-schroot-cmd -c $sessionID apt-get build-dep -y "$1";set +x;unset -f _alias_;};_alias_'
+alias pinstall='_alias_(){ set -x;dd-schroot-cmd -c $sessionID apt-get install -y "$@";set +x;unset -f _alias_;};_alias_'
+alias pauu='_alias_(){ set -x;dd-schroot-cmd -c $sessionID apt-get update; dd-schroot-cmd -c $sessionID apt-get upgrade -y; set +x;unset -f _alias_;};_alias_'
+alias pchroot='echo "Arch: $arch; Dist: $dist; Chroot session: $sessionID"; schroot -r -c $sessionID'
+alias pend='set -x; schroot-list-sessions; schroot -e -c $sessionID; schroot-list-sessions; set +x'
+alias plist='set -x; schroot-list-sessions; schroot --list --all-sessions; set +x'

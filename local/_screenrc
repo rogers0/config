@@ -4,3 +4,6 @@ startup_message off
 escape ^zz
 hardstatus alwayslastline
 hardstatus string '%{= kG}[ %{G}%H %{g}][%= %{= kw}%?%-Lw%?%{r} (%{W}%n*%f%t%?(%u)%?%{r})%{w}%?%+Lw%?%?%= %{g}][%{y} Load: %l %{g}][%{B} %M %d %{W}%c %{g}]'
+
+# set a big scrolling buffer
+defscrollback 5000

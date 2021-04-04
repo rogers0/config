@@ -5,7 +5,7 @@ CONFDIR=$(realpath $BINDIR/..)
 SSCONFIG=$CONFDIR/.ss-libev.json
 [ -f ${CONFDIR}/.gravity.list ] &&
   HOSTS="--addn-hosts=${CONFDIR}/.gravity.list"
-DNSPORT=65353
+DNSPORT=65353	# stubby listens on 65352, while dnsmasq listens on 65353
 RESOLV=/etc/resolv.conf
 #SSRESOLV=${RESOLV}.ss-client
 PID_SSREDIR=/run/ss-redir.pid
@@ -58,8 +58,8 @@ iptables -t nat -A OUTPUT -d $SSSERVER -j RETURN
 # DNS
 iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
 iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -m owner --uid-owner dnsmasq -j RETURN
-iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1
-iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1
+iptables -t nat -A OUTPUT -p udp -m udp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
+iptables -t nat -A OUTPUT -p tcp -m tcp --dport 53 -j DNAT --to 127.0.0.1:$DNSPORT
 
 # Ignore LANs and any other addresses you'd like to bypass the proxy
 # See Wikipedia and RFC5735 for full list of reserved networks.
@@ -89,5 +89,5 @@ mkdir -p $(dirname $PID_DNSMASQ)
 chown dnsmasq:nogroup $(dirname $PID_DNSMASQ)
 set -x
 start-stop-daemon --start --quiet --pidfile $PID_DNSMASQ --exec $(which dnsmasq) -- \
-  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -P 1280 \
-  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$DNSPORT $HOSTS
+  -x $PID_DNSMASQ -u dnsmasq --local-service --no-poll --no-resolv --no-hosts -p$DNSPORT -P1280 \
+  --conf-file=/dev/null --conf-dir= --cache-size=3000 --server=127.0.0.1\#$((DNSPORT-1)) $HOSTS
