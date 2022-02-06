@@ -18,3 +18,7 @@
 	pushInsteadOf = https://salsa.debian.org
 [url "git@github.com:"]
 	pushInsteadOf = https://github.com
+[alias]
+	pr = !git fetch -fu ${2:-origin} refs/pull/$1/head && :
+	mr = !git fetch -fu ${2:-origin} refs/merge-requests/$1/head && :
+	gerrit = !git fetch -fu ${2:-origin} refs/changes/$(echo $1|cut -d/ -f1|rev|cut -c -2|rev)/$1 && :

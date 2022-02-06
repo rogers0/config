@@ -1,12 +1,14 @@
 #!/bin/sh
 
+set -e
+
 BUILDDIR="${BUILDDIR:-/tmp/buildd}"
 
-set -ex
 echo "+++ lintian output +++"
 
 for changes in $BUILDDIR/*.changes; do
-  #su -c "lintian -IE --pedantic --no-tag-display-limit $changes; :" - pbuilder
+  case $changes in *_source.changes) echo Changes: $changes; continue ;; esac
+  su -c "time eatmydata lintian -IE --pedantic --no-tag-display-limit $changes; :" - pbuilder
   echo $changes
 done
 

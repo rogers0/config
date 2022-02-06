@@ -1,0 +1,9 @@
+ServerAliveInterval 170
+IdentityFile ~/.ssh/id_rsa_rosh.pub
+
+Host github.com
+	user git
+Host salsa.debian.org
+	user git
+Host debomatic-*.debian.net
+	user debomatic

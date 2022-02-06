@@ -12,10 +12,12 @@ HOOKDIR=${BASEDIR}/hook
 #    DIST=$(dpkg-parsechangelog | awk '/^Distribution: / {print $2}')
 #fi
 #OTHERMIRROR="$OTHERMIRROR | deb ${MIRRORSITE} ${DIST} main"
+#OTHERMIRROR="$OTHERMIRROR | deb ${MIRRORSITE} ${DIST}-sloppy main"
 #OTHERMIRROR="$OTHERMIRROR | deb [trusted=yes] file://${BINDMOUNTS} ./"
 #OTHERMIRROR="$OTHERMIRROR | deb http://incoming.debian.org/debian-buildd buildd-${DIST} main"
-EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache autodep8 autopkgtest"
+EXTRAPACKAGES="apt-utils apt-transport-https ca-certificates debhelper eatmydata lintian ccache autodep8 autopkgtest time"
 #PBUILDERSATISFYDEPENDSCMD="/usr/lib/pbuilder/pbuilder-satisfydepends-apt"		# required for cross-build
+#PBUILDERSATISFYDEPENDSCMD="/usr/lib/pbuilder/pbuilder-satisfydepends-gdebi"
 EATMYDATA=yes
 #USENETWORK=yes
 

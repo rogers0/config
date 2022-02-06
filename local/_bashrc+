@@ -17,7 +17,7 @@ alias du='du -h --max-depth=1'
 alias rsyncplain='rsync -rltDPv'
 alias netconsole='nc -l -u -p 6666 | tee ~/netconsole.log' # netconsole will send to 192.168.1.100:6666 # ip a add 192.168.1.100/24 dev eth0
 alias 7='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m'
-alias 7cp='7z a -t7z -mx0'
+alias 7cp='7z a -t7z -mx0 -v2g'
 alias 7secret='7z a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -p -mhe'
 
 alias dquilt="quilt --quiltrc=${HOME}/.quiltrc-dpkg"
@@ -25,10 +25,10 @@ alias reapply='dquilt pop -a; while dquilt push; do dquilt refresh; done'
 complete -F _quilt_completion $_quilt_complete_opt dquilt
 
 JOBS=$(($(nproc)*2-1))
-debian_oldstable_version=9
-debian_stable_version=10
-debian_oldstable=stretch
-debian_stable=buster
+debian_oldstable_version=10
+debian_stable_version=11
+debian_oldstable=buster
+debian_stable=bullseye
 
 alias amendcommit="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '5{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
 alias amendmerge="GIT_COMMITTER_DATE=\$(git show --pretty=fuller|sed -n '4{p;q}'|cut -d: -f2-) git commit --amend --no-edit"
@@ -41,11 +41,11 @@ alias reposyncnet='repo --time sync -q -c -n -j$JOBS'
 alias reposynclocal='repo --time sync -q -d -l -j$JOBS'
 alias gitmp='find . -name tmp_pack_\* -exec du -h {} \;'
 alias gitmp2='find . -name tmp_pack_\* -exec dirname {} \; |uniq|xargs ls -l'
-alias gbpupstream='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref --upstream-tree=$(git rev-parse $1) -u${ver} --debian-branch=$(git branch --show-current)&& dch -v"${ver}-1" "New upstream release $ver";set +x;unset ver;unset -f _alias_;};_alias_'
-alias gbpuptag='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref -u${ver} --debian-branch=$(git branch --show-current)&&dch -v"${ver}-1" "New upstream release $ver";set +x;unset ver;unset -f _alias_;};_alias_'
+alias gbpupstream='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref --upstream-tree=$(git rev-parse $1) -u${ver} --debian-branch=$(git rev-parse --abbrev-ref HEAD)&& dch -v"${ver}-1" "New upstream release $ver";set +x;unset ver;unset -f _alias_;};_alias_'
+alias gbpuptag='_alias_(){ set -x; ver=$(git describe --tags $1|sed "s:^v::;s:^upstream/::");echo $ver;gbp import-ref -u${ver} --debian-branch=$(git rev-parse --abbrev-ref HEAD) --upstream-tag="v%(version)s"&&dch -v"${ver}-1" "New upstream release $1";set +x;unset ver;unset -f _alias_;};_alias_'
 alias gbprefresh='gbp pq import && gbp pq export --drop'
 alias gbpimport='gbp import-dscs --debsnap --author-is-committer --author-date-is-committer-date --create-missing-branches'
-alias gpbga='gbp buildpackage --git-ignore-branch --git-pbuilder'
+alias gpbga='gbp buildpackage --git-ignore-branch --git-pbuilder -nc'
 alias gpbba='gpbga --git-no-create-orig'
 alias gbpga='gbp buildpackage -us -uc --git-ignore-branch --git-builder="debuild --no-lintian -i -I"'
 alias gbppa='gbpga --git-pristine-tar'
@@ -67,7 +67,7 @@ alias getkeydd='_alias_(){ id=rosh;[ $# -eq 1 ]&&id=$1;set -x;finger $id/key@db.
 alias debemail='export DEBEMAIL=$(git config user.email)'
 alias dch-r='debemail; dch -r ""; git add debian/changelog; git commit -m "Prepare to release $(dpkg-parsechangelog -SVersion)"; gitag'
 alias dch-rr='debemail; dch -r ""; git add debian/changelog; git commit --amend --reset-author --no-edit; gitag -f'
-alias gitag='_alias_(){ git tag $@ debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD; git show-branch debian/$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g") HEAD;unset -f _alias_;};_alias_'
+alias gitag='_alias_(){ ver=$(dpkg-parsechangelog -SVersion|sed "s/~/_/g;s/:/%/g"); git tag -s -m "Debian version $ver" $@ debian/$ver HEAD; git show-branch debian/$ver HEAD;unset ver;unset -f _alias_;};_alias_'
 alias deps='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends"'
 alias depsbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_stable}-backports"'
 alias depsoldbpo='mk-build-deps --root-cmd sudo --install --tool "apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends -t ${debian_oldstable}-backports"'
@@ -85,8 +85,10 @@ export PATH=/usr/lib/ccache:$PATH_ORIG:~/bin
 export USE_CCACHE=1
 export CCACHE_EXEC=$(which ccache)
 export NDK_CCACHE=ccache
-export CCACHE_CPP2=yes
+export CCACHE_CPP2=true
 export CCACHE_COMPILERCHECK=content
+export CCACHE_NOHASHDIR=true
+export CCACHE_UMASK=002
 export DEBEMAIL=rosh@debian.org
 export DEBNAME="Roger Shimizu"
 export DEBKEY=0x6C6ACD6417B3ACB1
@@ -177,6 +179,8 @@ pdebuild() {
   [ -z "$DIST" ] &&
     DIST=$(lsb_release --short --codename)
   BASEPATH=/var/cache/pbuilder/base-${DIST}.cow
+  [ $DIST = "unstable" ] &&
+    DIST=sid && BASEPATH=/var/cache/pbuilder/base.cow
   [ ! -d $BASEPATH ] &&
     DIST=${DIST}-backports &&
     BASEPATH=/var/cache/pbuilder/base-${DIST}.cow
@@ -250,7 +254,7 @@ alias psetup='_alias_() { \
   schroot -b -c ${dist}_${arch}-dchroot -n $sessionID; \
   dd-schroot-cmd -c $sessionID apt-get update; \
   dd-schroot-cmd -c $sessionID apt-get dist-upgrade -y; \
-  dd-schroot-cmd -c $sessionID apt-get install -y git-buildpackage pristine-tar bash-completion ccache vim; \
+  dd-schroot-cmd -c $sessionID apt-get install -y git-buildpackage pristine-tar bash-completion ccache vim time eatmydata; \
   set +x; \
   echo Chroot session ready to use: $sessionID; \
   unset -f _alias_; \
